@@ -6,7 +6,8 @@ use crate::access_control::AccessResolver;
 use crate::config::AppConfig;
 use crate::dashboard::DashboardMetrics;
 use crate::gitlab::GitLabClient;
-use crate::tools::{definitions, ContentBlock, ToolContext, ToolOutput, ToolRegistry};
+use crate::tools::{ContentBlock, ToolContext, ToolOutput, ToolRegistry, definitions};
+use rmcp::Error as McpError;
 use rmcp::handler::server::ServerHandler;
 use rmcp::model::{
     CallToolRequestParam, CallToolResult, Content, Implementation, InitializeResult,
@@ -14,7 +15,6 @@ use rmcp::model::{
     ToolsCapability,
 };
 use rmcp::service::{RequestContext, RoleServer};
-use rmcp::Error as McpError;
 use serde_json::{Map, Value};
 use std::borrow::Cow;
 use std::future::Future;

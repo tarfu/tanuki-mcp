@@ -1,5 +1,6 @@
 //! Server handler integration tests
 
+use rmcp::handler::server::ServerHandler;
 use tanuki_mcp::access_control::AccessResolver;
 use tanuki_mcp::auth::PatProvider;
 use tanuki_mcp::config::{
@@ -8,7 +9,6 @@ use tanuki_mcp::config::{
 };
 use tanuki_mcp::gitlab::GitLabClient;
 use tanuki_mcp::server::GitLabMcpHandler;
-use rmcp::handler::server::ServerHandler;
 
 use serde_json::json;
 use std::sync::Arc;

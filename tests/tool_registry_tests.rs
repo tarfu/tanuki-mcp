@@ -24,9 +24,11 @@ fn test_tool_categories_complete() {
     let tool_names: Vec<&str> = registry.tools().map(|t| t.name).collect();
 
     // Issues
-    assert!(tool_names
-        .iter()
-        .any(|n| n.starts_with("list_issues") || n.starts_with("get_issue")));
+    assert!(
+        tool_names
+            .iter()
+            .any(|n| n.starts_with("list_issues") || n.starts_with("get_issue"))
+    );
     assert!(tool_names.iter().any(|n| n.starts_with("create_issue")));
 
     // Merge Requests
@@ -36,9 +38,11 @@ fn test_tool_categories_complete() {
     assert!(tool_names.iter().any(|n| n.contains("pipeline")));
 
     // Repository
-    assert!(tool_names
-        .iter()
-        .any(|n| n.contains("file") || n.contains("tree")));
+    assert!(
+        tool_names
+            .iter()
+            .any(|n| n.contains("file") || n.contains("tree"))
+    );
 
     // Projects
     assert!(tool_names.iter().any(|n| n.contains("project")));

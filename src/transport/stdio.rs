@@ -3,8 +3,8 @@
 //! Runs the MCP server over standard input/output.
 
 use crate::server::GitLabMcpHandler;
-use rmcp::transport::io::stdio;
 use rmcp::ServiceExt;
+use rmcp::transport::io::stdio;
 use tracing::info;
 
 /// Run the MCP server using stdio transport

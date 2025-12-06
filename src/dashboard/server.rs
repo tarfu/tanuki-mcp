@@ -6,11 +6,11 @@ use crate::config::AppConfig;
 use crate::dashboard::metrics::{DashboardMetrics, MetricsSnapshot};
 use crate::util::find_available_port;
 use axum::{
+    Json, Router,
     extract::State,
-    http::{header, StatusCode},
+    http::{StatusCode, header},
     response::{Html, IntoResponse, Response},
     routing::get,
-    Json, Router,
 };
 use serde::Serialize;
 use std::net::SocketAddr;

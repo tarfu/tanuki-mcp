@@ -2,13 +2,13 @@
 //!
 //! Tests individual tools with mocked GitLab API responses.
 
+use serde_json::json;
+use std::sync::Arc;
 use tanuki_mcp::access_control::AccessResolver;
 use tanuki_mcp::auth::PatProvider;
 use tanuki_mcp::config::{AccessControlConfig, AccessLevel, GitLabConfig};
 use tanuki_mcp::gitlab::GitLabClient;
-use tanuki_mcp::tools::{definitions, ToolContext, ToolRegistry};
-use serde_json::json;
-use std::sync::Arc;
+use tanuki_mcp::tools::{ToolContext, ToolRegistry, definitions};
 use wiremock::matchers::{body_json, header, method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 

@@ -426,23 +426,27 @@ mod tests {
     fn test_allow_all() {
         let resolver = AccessResolver::allow_all();
 
-        assert!(resolver
-            .check(
-                "any_tool",
-                ToolCategory::Issues,
-                OperationType::Delete,
-                None
-            )
-            .is_allowed());
+        assert!(
+            resolver
+                .check(
+                    "any_tool",
+                    ToolCategory::Issues,
+                    OperationType::Delete,
+                    None
+                )
+                .is_allowed()
+        );
     }
 
     #[test]
     fn test_deny_all() {
         let resolver = AccessResolver::deny_all();
 
-        assert!(resolver
-            .check("any_tool", ToolCategory::Issues, OperationType::Read, None)
-            .is_denied());
+        assert!(
+            resolver
+                .check("any_tool", ToolCategory::Issues, OperationType::Read, None)
+                .is_denied()
+        );
     }
 
     #[test]
@@ -452,24 +456,28 @@ mod tests {
         let resolver = AccessResolver::new(&config).unwrap();
 
         // Read operations should be allowed
-        assert!(resolver
-            .check(
-                "list_issues",
-                ToolCategory::Issues,
-                OperationType::Read,
-                None
-            )
-            .is_allowed());
+        assert!(
+            resolver
+                .check(
+                    "list_issues",
+                    ToolCategory::Issues,
+                    OperationType::Read,
+                    None
+                )
+                .is_allowed()
+        );
 
         // Write operations should be denied
-        assert!(resolver
-            .check(
-                "create_issue",
-                ToolCategory::Issues,
-                OperationType::Write,
-                None
-            )
-            .is_denied());
+        assert!(
+            resolver
+                .check(
+                    "create_issue",
+                    ToolCategory::Issues,
+                    OperationType::Write,
+                    None
+                )
+                .is_denied()
+        );
     }
 
     #[test]
@@ -480,24 +488,28 @@ mod tests {
         let resolver = AccessResolver::new(&config).unwrap();
 
         // Delete operations matching pattern should be denied
-        assert!(resolver
-            .check(
-                "delete_issue",
-                ToolCategory::Issues,
-                OperationType::Delete,
-                None
-            )
-            .is_denied());
+        assert!(
+            resolver
+                .check(
+                    "delete_issue",
+                    ToolCategory::Issues,
+                    OperationType::Delete,
+                    None
+                )
+                .is_denied()
+        );
 
         // Other operations should be allowed
-        assert!(resolver
-            .check(
-                "create_issue",
-                ToolCategory::Issues,
-                OperationType::Write,
-                None
-            )
-            .is_allowed());
+        assert!(
+            resolver
+                .check(
+                    "create_issue",
+                    ToolCategory::Issues,
+                    OperationType::Write,
+                    None
+                )
+                .is_allowed()
+        );
     }
 
     #[test]
@@ -509,24 +521,28 @@ mod tests {
         let resolver = AccessResolver::new(&config).unwrap();
 
         // delete_label should be allowed because allow overrides deny
-        assert!(resolver
-            .check(
-                "delete_label",
-                ToolCategory::Labels,
-                OperationType::Delete,
-                None
-            )
-            .is_allowed());
+        assert!(
+            resolver
+                .check(
+                    "delete_label",
+                    ToolCategory::Labels,
+                    OperationType::Delete,
+                    None
+                )
+                .is_allowed()
+        );
 
         // Other deletes should still be denied
-        assert!(resolver
-            .check(
-                "delete_issue",
-                ToolCategory::Issues,
-                OperationType::Delete,
-                None
-            )
-            .is_denied());
+        assert!(
+            resolver
+                .check(
+                    "delete_issue",
+                    ToolCategory::Issues,
+                    OperationType::Delete,
+                    None
+                )
+                .is_denied()
+        );
     }
 
     #[test]
@@ -543,24 +559,28 @@ mod tests {
         let resolver = AccessResolver::new(&config).unwrap();
 
         // Issues category should have full access
-        assert!(resolver
-            .check(
-                "create_issue",
-                ToolCategory::Issues,
-                OperationType::Write,
-                None
-            )
-            .is_allowed());
+        assert!(
+            resolver
+                .check(
+                    "create_issue",
+                    ToolCategory::Issues,
+                    OperationType::Write,
+                    None
+                )
+                .is_allowed()
+        );
 
         // Other categories should only have read
-        assert!(resolver
-            .check(
-                "create_label",
-                ToolCategory::Labels,
-                OperationType::Write,
-                None
-            )
-            .is_denied());
+        assert!(
+            resolver
+                .check(
+                    "create_label",
+                    ToolCategory::Labels,
+                    OperationType::Write,
+                    None
+                )
+                .is_denied()
+        );
     }
 
     #[test]
@@ -576,24 +596,28 @@ mod tests {
         let resolver = AccessResolver::new(&config).unwrap();
 
         // Explicitly allowed action
-        assert!(resolver
-            .check(
-                "create_issue_note",
-                ToolCategory::IssueNotes,
-                OperationType::Write,
-                None
-            )
-            .is_allowed());
+        assert!(
+            resolver
+                .check(
+                    "create_issue_note",
+                    ToolCategory::IssueNotes,
+                    OperationType::Write,
+                    None
+                )
+                .is_allowed()
+        );
 
         // Explicitly denied action
-        assert!(resolver
-            .check(
-                "merge_merge_request",
-                ToolCategory::MergeRequests,
-                OperationType::Execute,
-                None
-            )
-            .is_denied());
+        assert!(
+            resolver
+                .check(
+                    "merge_merge_request",
+                    ToolCategory::MergeRequests,
+                    OperationType::Execute,
+                    None
+                )
+                .is_denied()
+        );
     }
 
     #[test]
@@ -612,34 +636,40 @@ mod tests {
         let resolver = AccessResolver::new(&config).unwrap();
 
         // Global access is full
-        assert!(resolver
-            .check(
-                "create_issue",
-                ToolCategory::Issues,
-                OperationType::Write,
-                None
-            )
-            .is_allowed());
+        assert!(
+            resolver
+                .check(
+                    "create_issue",
+                    ToolCategory::Issues,
+                    OperationType::Write,
+                    None
+                )
+                .is_allowed()
+        );
 
         // But prod/app is read-only
-        assert!(resolver
-            .check(
-                "create_issue",
-                ToolCategory::Issues,
-                OperationType::Write,
-                Some("prod/app")
-            )
-            .is_denied());
+        assert!(
+            resolver
+                .check(
+                    "create_issue",
+                    ToolCategory::Issues,
+                    OperationType::Write,
+                    Some("prod/app")
+                )
+                .is_denied()
+        );
 
         // Read is still allowed
-        assert!(resolver
-            .check(
-                "list_issues",
-                ToolCategory::Issues,
-                OperationType::Read,
-                Some("prod/app")
-            )
-            .is_allowed());
+        assert!(
+            resolver
+                .check(
+                    "list_issues",
+                    ToolCategory::Issues,
+                    OperationType::Read,
+                    Some("prod/app")
+                )
+                .is_allowed()
+        );
     }
 
     #[test]
@@ -659,24 +689,28 @@ mod tests {
         let resolver = AccessResolver::new(&config).unwrap();
 
         // Globally, create_issue_note is denied (read-only)
-        assert!(resolver
-            .check(
-                "create_issue_note",
-                ToolCategory::IssueNotes,
-                OperationType::Write,
-                None
-            )
-            .is_denied());
+        assert!(
+            resolver
+                .check(
+                    "create_issue_note",
+                    ToolCategory::IssueNotes,
+                    OperationType::Write,
+                    None
+                )
+                .is_denied()
+        );
 
         // But allowed for staging
-        assert!(resolver
-            .check(
-                "create_issue_note",
-                ToolCategory::IssueNotes,
-                OperationType::Write,
-                Some("staging/app")
-            )
-            .is_allowed());
+        assert!(
+            resolver
+                .check(
+                    "create_issue_note",
+                    ToolCategory::IssueNotes,
+                    OperationType::Write,
+                    Some("staging/app")
+                )
+                .is_allowed()
+        );
     }
 
     #[test]
@@ -722,63 +756,75 @@ mod tests {
 
         // Test various scenarios
         // 1. Read is always allowed globally
-        assert!(resolver
-            .check(
-                "list_issues",
-                ToolCategory::Issues,
-                OperationType::Read,
-                None
-            )
-            .is_allowed());
+        assert!(
+            resolver
+                .check(
+                    "list_issues",
+                    ToolCategory::Issues,
+                    OperationType::Read,
+                    None
+                )
+                .is_allowed()
+        );
 
         // 2. Issues create is allowed (category override)
-        assert!(resolver
-            .check(
-                "create_issue",
-                ToolCategory::Issues,
-                OperationType::Write,
-                None
-            )
-            .is_allowed());
+        assert!(
+            resolver
+                .check(
+                    "create_issue",
+                    ToolCategory::Issues,
+                    OperationType::Write,
+                    None
+                )
+                .is_allowed()
+        );
 
         // 3. Delete issue is denied (category pattern)
-        assert!(resolver
-            .check(
-                "delete_issue",
-                ToolCategory::Issues,
-                OperationType::Delete,
-                None
-            )
-            .is_denied());
+        assert!(
+            resolver
+                .check(
+                    "delete_issue",
+                    ToolCategory::Issues,
+                    OperationType::Delete,
+                    None
+                )
+                .is_denied()
+        );
 
         // 4. Merge MR is always denied (action override)
-        assert!(resolver
-            .check(
-                "merge_merge_request",
-                ToolCategory::MergeRequests,
-                OperationType::Execute,
-                None
-            )
-            .is_denied());
+        assert!(
+            resolver
+                .check(
+                    "merge_merge_request",
+                    ToolCategory::MergeRequests,
+                    OperationType::Execute,
+                    None
+                )
+                .is_denied()
+        );
 
         // 5. Prod issues are read-only (project category override)
-        assert!(resolver
-            .check(
-                "create_issue",
-                ToolCategory::Issues,
-                OperationType::Write,
-                Some("prod/app")
-            )
-            .is_denied());
+        assert!(
+            resolver
+                .check(
+                    "create_issue",
+                    ToolCategory::Issues,
+                    OperationType::Write,
+                    Some("prod/app")
+                )
+                .is_denied()
+        );
 
         // 6. But notes are allowed on prod (action override)
-        assert!(resolver
-            .check(
-                "create_issue_note",
-                ToolCategory::IssueNotes,
-                OperationType::Write,
-                Some("prod/app")
-            )
-            .is_allowed());
+        assert!(
+            resolver
+                .check(
+                    "create_issue_note",
+                    ToolCategory::IssueNotes,
+                    OperationType::Write,
+                    Some("prod/app")
+                )
+                .is_allowed()
+        );
     }
 }

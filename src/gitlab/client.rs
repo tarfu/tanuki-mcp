@@ -6,7 +6,7 @@ use crate::auth::BoxedAuthProvider;
 use crate::config::GitLabConfig;
 use crate::error::{GitLabError, GitLabResult};
 use reqwest::{Client, Method, RequestBuilder, Response, StatusCode};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;

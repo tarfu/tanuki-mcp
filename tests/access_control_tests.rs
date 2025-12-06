@@ -175,7 +175,6 @@ mod access_level_operation_matrix {
         );
     }
 
-
     // --- AccessLevel::Deny tests ---
 
     #[test]
@@ -1296,7 +1295,6 @@ mod hierarchy_tests {
                     .is_allowed()
             );
         }
-
 
         // --- AccessLevel::Deny tests for categories ---
 

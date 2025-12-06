@@ -3,18 +3,18 @@
 //! A Model Context Protocol server for GitLab with fine-grained access control.
 
 use clap::Parser;
+use std::sync::Arc;
 use tanuki_mcp::{
     access_control::AccessResolver,
     auth::create_auth_provider,
-    config::{load_config, AppConfig, TransportMode},
-    dashboard::{run_dashboard, DashboardConfig, DashboardMetrics, DEFAULT_DASHBOARD_PORT},
+    config::{AppConfig, TransportMode, load_config},
+    dashboard::{DEFAULT_DASHBOARD_PORT, DashboardConfig, DashboardMetrics, run_dashboard},
     gitlab::GitLabClient,
     server::GitLabMcpHandler,
-    transport::{run_http_blocking, run_stdio, HttpConfig, DEFAULT_HTTP_PORT},
+    transport::{DEFAULT_HTTP_PORT, HttpConfig, run_http_blocking, run_stdio},
 };
-use std::sync::Arc;
 use tracing::{error, info};
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 /// GitLab MCP Server - Fine-grained access control for GitLab via MCP
 #[derive(Parser, Debug)]

@@ -6,9 +6,9 @@ use crate::error::ToolError;
 use crate::gitlab::GitLabClient;
 use crate::tools::executor::{ToolContext, ToolExecutor, ToolOutput};
 use async_trait::async_trait;
-use tanuki_mcp_macros::gitlab_tool;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use tanuki_mcp_macros::gitlab_tool;
 
 /// List pipelines in a project
 #[gitlab_tool(

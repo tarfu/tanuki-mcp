@@ -2,8 +2,8 @@
 //!
 //! Tests for HTTP/SSE configuration and basic functionality.
 
-use tanuki_mcp::transport::HttpConfig;
 use std::net::SocketAddr;
+use tanuki_mcp::transport::HttpConfig;
 
 #[test]
 fn test_http_config_default() {

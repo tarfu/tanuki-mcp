@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 description = "Procedural macros for tanuki-mcp"
 license = "MIT"
+repository = "https://github.com/tarfu/tanuki-mcp"
+authors = ["Tobias Breitwieser <tobias@breitwieser.biz>"]
 
 [lib]
 proc-macro = true

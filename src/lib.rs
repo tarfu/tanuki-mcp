@@ -50,7 +50,7 @@ pub mod transport;
 pub mod util;
 
 // Re-export main types
-pub use config::{load_config, AppConfig};
+pub use config::{AppConfig, load_config};
 pub use dashboard::{DashboardConfig, DashboardMetrics};
 pub use error::{AppError, Result};
 pub use server::GitLabMcpHandler;

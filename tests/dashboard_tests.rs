@@ -1,9 +1,9 @@
 //! Dashboard integration tests
 
-use tanuki_mcp::access_control::ToolCategory;
-use tanuki_mcp::dashboard::{DashboardConfig, DashboardMetrics};
 use std::sync::Arc;
 use std::time::Duration;
+use tanuki_mcp::access_control::ToolCategory;
+use tanuki_mcp::dashboard::{DashboardConfig, DashboardMetrics};
 
 #[test]
 fn test_metrics_collector_initialization() {

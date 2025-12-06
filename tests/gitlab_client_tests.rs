@@ -1,10 +1,10 @@
 //! GitLab client integration tests with mock server
 
+use serde_json::json;
 use tanuki_mcp::auth::PatProvider;
 use tanuki_mcp::config::GitLabConfig;
 use tanuki_mcp::error::GitLabError;
 use tanuki_mcp::gitlab::GitLabClient;
-use serde_json::json;
 use wiremock::matchers::{header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 

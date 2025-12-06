@@ -1,6 +1,6 @@
 //! Configuration loading tests
 
-use tanuki_mcp::config::{load_config_from_str, AccessLevel, TransportMode};
+use tanuki_mcp::config::{AccessLevel, TransportMode, load_config_from_str};
 
 const MINIMAL_CONFIG: &str = r#"
 [server]
@@ -101,10 +101,12 @@ fn test_full_config() {
     assert_eq!(mrs.deny, vec!["merge_merge_request"]);
 
     // Actions
-    assert!(config
-        .access_control
-        .actions
-        .contains_key("create_pipeline"));
+    assert!(
+        config
+            .access_control
+            .actions
+            .contains_key("create_pipeline")
+    );
     assert!(config.access_control.actions.contains_key("delete_project"));
 
     // Projects

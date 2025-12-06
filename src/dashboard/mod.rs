@@ -7,4 +7,4 @@ pub mod metrics;
 pub mod server;
 
 pub use metrics::{DashboardMetrics, ProjectStats, ToolStats};
-pub use server::{run_dashboard, DashboardConfig, DEFAULT_DASHBOARD_PORT};
+pub use server::{DEFAULT_DASHBOARD_PORT, DashboardConfig, run_dashboard};

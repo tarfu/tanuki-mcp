@@ -3,11 +3,11 @@
 //! This crate provides the `#[gitlab_tool]` attribute macro for defining GitLab MCP tools
 //! with minimal boilerplate.
 
-use darling::{ast::NestedMeta, FromMeta};
+use darling::{FromMeta, ast::NestedMeta};
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, Ident};
+use syn::{DeriveInput, Ident, parse_macro_input};
 
 /// Arguments for the `#[gitlab_tool]` attribute
 #[derive(Debug, FromMeta)]
