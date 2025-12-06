@@ -1,0 +1,85 @@
+[workspace]
+members = [".", "tanuki-mcp-macros"]
+resolver = "2"
+
+[package]
+name = "tanuki-mcp"
+version = "0.1.0"
+edition = "2024"
+description = "A GitLab MCP server with fine-grained access control"
+license = "MIT"
+repository = "https://github.com/tarfu/tanuki-mcp"
+maintainers = ["Tobias Breitwieser <tobias@breitwieser.biz>"]
+keywords = ["gitlab", "mcp", "api", "cli"]
+categories = ["command-line-utilities", "development-tools"]
+
+[dependencies]
+# MCP SDK
+rmcp = { version = "0.1", features = ["server", "transport-io", "transport-sse-server"] }
+
+# Async runtime
+tokio = { version = "1", features = ["full", "macros", "rt-multi-thread"] }
+tokio-util = "0.7"
+futures = "0.3"
+async-trait = "0.1"
+
+# HTTP client for GitLab API
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+# HTTP server for SSE transport
+axum = { version = "0.7", features = ["json"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["trace", "cors"] }
+
+# Configuration
+config = { version = "0.14", features = ["toml"] }
+dotenvy = "0.15"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+# JSON Schema for MCP tools
+schemars = "0.8"
+
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# Pattern matching for access control
+regex = "1"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# CLI
+clap = { version = "4", features = ["derive", "env"] }
+
+# URL encoding for GitLab paths
+urlencoding = "2"
+
+# Base64 for decoding file content
+base64 = "0.22"
+
+# Utilities
+rand = "0.8"
+shellexpand = "3"
+
+# Our proc macro crate
+tanuki-mcp-macros = { path = "tanuki-mcp-macros" }
+
+[dev-dependencies]
+tokio-test = "0.4"
+wiremock = "0.6"
+rstest = "0.23"
+insta = { version = "1", features = ["json"] }
+
+[[bin]]
+name = "tanuki-mcp"
+path = "src/main.rs"
+
+[profile.release]
+lto = true
+strip = true

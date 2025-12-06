@@ -1,0 +1,221 @@
+# GitLab MCP Server Configuration
+#
+# This is an example configuration file. Copy to config.toml and customize.
+# Environment variables can override any setting using the prefix TANUKI_MCP_
+# e.g., TANUKI_MCP_GITLAB__TOKEN for gitlab.token
+
+# =============================================================================
+# Server Configuration
+# =============================================================================
+[server]
+# Server name (shown in MCP client)
+name = "tanuki-mcp"
+# Server version
+version = "0.1.0"
+# Transport mode: "stdio" or "http"
+transport = "stdio"
+# HTTP server settings (only used when transport = "http")
+host = "127.0.0.1"
+port = 20289
+
+# =============================================================================
+# GitLab Connection
+# =============================================================================
+[gitlab]
+# GitLab instance URL (required)
+url = "https://gitlab.com"
+# Personal Access Token (required - recommended to set via TANUKI_MCP_GITLAB__TOKEN env var)
+# token = "glpat-xxxxxxxxxxxxxxxxxxxx"
+# Request timeout in seconds
+timeout_secs = 30
+# Maximum retries for failed requests
+max_retries = 3
+# Verify SSL certificates
+verify_ssl = true
+
+# =============================================================================
+# Access Control
+# =============================================================================
+#
+# The access control system uses a hierarchical resolution:
+#   1. Project-specific action override
+#   2. Global action override
+#   3. Project-specific category
+#   4. Global category
+#   5. Project-specific base (all)
+#   6. Global base (all)
+#
+# Access levels:
+#   - "none": No access
+#   - "read": Read-only operations (list_*, get_*)
+#   - "write": Read + create/update operations
+#   - "full": All operations including delete
+#
+# Pattern matching:
+#   - deny: Array of regex patterns for tools to deny
+#   - allow: Array of regex patterns that override deny
+
+[access_control]
+# Base access level for all tools
+all = "read"
+
+# Global deny patterns (regex) - these block tools regardless of other settings
+# deny = ["delete_.*", ".*_force"]
+
+# Global allow patterns (regex) - override deny patterns at this level
+# allow = []
+
+# =============================================================================
+# Category Access Control
+# =============================================================================
+#
+# Available categories:
+#   - issues: Issue management (8 tools)
+#   - issue_notes: Issue comments (5 tools)
+#   - issue_links: Issue relationships (3 tools)
+#   - merge_requests: MR management (8 tools)
+#   - mr_discussions: MR comments/threads (7 tools)
+#   - mr_drafts: MR draft notes (7 tools)
+#   - repository: Files, tree, search (7 tools)
+#   - branches: Branch operations (2 tools)
+#   - commits: Commit operations (3 tools)
+#   - projects: Project management (6 tools)
+#   - namespaces: Namespace operations (3 tools)
+#   - labels: Label management (5 tools)
+#   - wiki: Wiki pages (5 tools)
+#   - pipelines: CI/CD pipelines (12 tools)
+#   - milestones: Milestone management (9 tools)
+#   - releases: Release management (6 tools)
+#   - users: User operations (2 tools)
+#   - groups: Group operations (2 tools)
+
+[access_control.categories.issues]
+level = "full"
+
+[access_control.categories.issue_notes]
+level = "full"
+
+[access_control.categories.issue_links]
+level = "write"
+
+[access_control.categories.merge_requests]
+level = "write"
+deny = ["merge_merge_request"]    # Prevent auto-merging
+
+[access_control.categories.mr_discussions]
+level = "full"
+
+[access_control.categories.mr_drafts]
+level = "full"
+
+[access_control.categories.repository]
+level = "read"
+
+[access_control.categories.branches]
+level = "read"
+
+[access_control.categories.commits]
+level = "read"
+
+[access_control.categories.projects]
+level = "read"
+
+[access_control.categories.namespaces]
+level = "read"
+
+[access_control.categories.labels]
+level = "write"
+
+[access_control.categories.wiki]
+level = "write"
+
+[access_control.categories.pipelines]
+level = "read"
+allow = ["create_pipeline", "retry_pipeline_job"]
+
+[access_control.categories.milestones]
+level = "write"
+
+[access_control.categories.releases]
+level = "read"
+
+[access_control.categories.users]
+level = "read"
+
+[access_control.categories.groups]
+level = "read"
+
+# =============================================================================
+# Individual Action Overrides
+# =============================================================================
+#
+# Override specific tools regardless of category settings.
+# Format: tool_name = "allow" | "deny"
+
+[access_control.actions]
+# Examples:
+# create_issue_note = "allow"     # Explicitly allow
+# delete_project = "deny"         # Explicitly deny
+
+# =============================================================================
+# Project-Specific Overrides
+# =============================================================================
+#
+# Override settings for specific projects.
+# Project paths should match GitLab paths (e.g., "group/project" or "group/subgroup/project")
+
+# Example: Production project is read-only
+# [access_control.projects."mycompany/production-app"]
+# all = "read"
+# deny = [".*"]
+# allow = ["list_.*", "get_.*"]
+
+# Example: Sandbox project has full access
+# [access_control.projects."mycompany/sandbox"]
+# all = "full"
+
+# Example: Documentation project allows wiki edits only
+# [access_control.projects."mycompany/docs"]
+# all = "read"
+# [access_control.projects."mycompany/docs".categories.wiki]
+# level = "full"
+
+# =============================================================================
+# Dashboard Configuration
+# =============================================================================
+#
+# The dashboard provides a web interface for monitoring MCP server usage.
+# It shows:
+#   - Configuration summary
+#   - Projects being accessed
+#   - Tools being used with statistics
+#   - Category breakdown
+#   - Recent requests log
+#
+# The dashboard runs on a separate HTTP port and auto-refreshes every 2 seconds.
+
+[dashboard]
+# Enable or disable the dashboard (default: true)
+enabled = true
+
+# Dashboard host address
+# Use "127.0.0.1" for local access only
+# Use "0.0.0.0" to allow external access (be careful with security!)
+host = "127.0.0.1"
+
+# Dashboard port (default: 19892)
+# Make sure this doesn't conflict with other services
+port = 19892
+
+# Note: Port auto-discovery is enabled. If the configured port is taken,
+# the server will try the next 10 consecutive ports, then let the OS assign one.
+
+# Command-line options:
+#   --no-dashboard        Disable the dashboard
+#   --dashboard-host      Override dashboard host
+#   --dashboard-port      Override dashboard port
+#
+# Environment variables:
+#   TANUKI_MCP_DASHBOARD__ENABLED=false
+#   TANUKI_MCP_DASHBOARD__HOST=0.0.0.0
+#   TANUKI_MCP_DASHBOARD__PORT=19892
