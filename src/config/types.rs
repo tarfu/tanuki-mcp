@@ -66,7 +66,7 @@ impl Default for DashboardConfigToml {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct GitLabConfig {
-    /// GitLab instance URL (e.g., "https://gitlab.com")
+    /// GitLab instance URL (e.g., `https://gitlab.com`)
     pub url: String,
 
     /// Personal Access Token (prefer env var GITLAB_TOKEN)
