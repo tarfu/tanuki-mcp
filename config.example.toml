@@ -46,10 +46,10 @@ verify_ssl = true
 #   6. Global base (all)
 #
 # Access levels:
-#   - "none": No access
+#   - "none": No decision at this level (falls through to next level in hierarchy)
+#   - "deny": Explicitly deny all operations
 #   - "read": Read-only operations (list_*, get_*)
-#   - "write": Read + create/update operations
-#   - "full": All operations including delete
+#   - "full": All operations including write and delete
 #
 # Pattern matching:
 #   - deny: Array of regex patterns for tools to deny

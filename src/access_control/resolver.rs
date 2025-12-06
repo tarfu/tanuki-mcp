@@ -276,6 +276,9 @@ impl AccessResolver {
                 "Operation '{}' requires write access, but only read access is granted",
                 operation
             )),
+            (AccessLevel::Deny, _) => {
+                AccessDecision::Denied("Access explicitly denied at this level".to_string())
+            }
             (AccessLevel::None, _) => {
                 AccessDecision::Denied("No access granted at this level".to_string())
             }

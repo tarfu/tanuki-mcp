@@ -207,9 +207,11 @@ impl Default for AccessControlConfig {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum AccessLevel {
-    /// No access
+    /// No access decision at this level (fall through to next level)
     #[default]
     None,
+    /// Explicitly deny all operations
+    Deny,
     /// Read-only operations (get, list, search)
     Read,
     /// Full access (all operations)
@@ -366,6 +368,10 @@ mod tests {
         let json = r#""none""#;
         let level: AccessLevel = serde_json::from_str(json).unwrap();
         assert_eq!(level, AccessLevel::None);
+
+        let json = r#""deny""#;
+        let level: AccessLevel = serde_json::from_str(json).unwrap();
+        assert_eq!(level, AccessLevel::Deny);
     }
 
     #[test]

@@ -1,0 +1,32 @@
+# Build artifacts
+target/
+*.rs.bk
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Documentation source (not needed for build)
+docs/
+
+# Configuration examples
+config.example.toml
+
+# Development files
+.serena/
+*.md
+!README.md
+
+# Test files
+tests/
+
+# Misc
+.DS_Store
+Thumbs.db
