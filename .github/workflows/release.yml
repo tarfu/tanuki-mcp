@@ -14,6 +14,104 @@ jobs:
     name: CI Checks
     uses: ./.github/workflows/ci.yml
 
+  # Build binaries for all platforms
+  build-binaries:
+    name: Build ${{ matrix.target }}
+    needs: ci
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux x64
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            cross: false
+          # Linux ARM64
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            cross: true
+          # Linux ARM32
+          - target: armv7-unknown-linux-gnueabihf
+            os: ubuntu-latest
+            cross: true
+          # macOS x64
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            cross: false
+          # macOS ARM64
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            cross: false
+          # Windows x64
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            cross: false
+          # Windows ARM64
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            cross: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.91"
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      # Install cross for Linux ARM targets
+      - name: Install cross
+        if: matrix.cross
+        run: |
+          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+          cargo binstall --no-confirm cross
+
+      # Build with cross for Linux ARM
+      - name: Build with cross
+        if: matrix.cross
+        run: cross build --release --target ${{ matrix.target }}
+
+      # Build natively for other platforms
+      - name: Build natively
+        if: "!matrix.cross"
+        run: cargo build --release --target ${{ matrix.target }}
+
+      # Get version from tag
+      - name: Get version
+        id: version
+        shell: bash
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      # Package for Unix (tar.gz)
+      - name: Package (Unix)
+        if: "!contains(matrix.target, 'windows')"
+        shell: bash
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar -czvf ../../../tanuki-mcp-${{ matrix.target }}-v${{ steps.version.outputs.version }}.tar.gz tanuki-mcp
+          cd ../../..
+
+      # Package for Windows (zip)
+      - name: Package (Windows)
+        if: contains(matrix.target, 'windows')
+        shell: pwsh
+        run: |
+          Compress-Archive -Path target/${{ matrix.target }}/release/tanuki-mcp.exe -DestinationPath tanuki-mcp-${{ matrix.target }}-v${{ steps.version.outputs.version }}.zip
+
+      # Upload artifact
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tanuki-mcp-${{ matrix.target }}
+          path: tanuki-mcp-${{ matrix.target }}-v${{ steps.version.outputs.version }}.*
+          if-no-files-found: error
+
   # Publish to crates.io
   publish:
     name: Publish to crates.io
@@ -21,7 +119,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.91"
       - uses: Swatinem/rust-cache@v2
 
       - name: Verify version matches tag
@@ -47,19 +147,30 @@ jobs:
       - name: Publish tanuki-mcp
         run: cargo publish --package tanuki-mcp --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-  # Create GitHub Release
+  # Create GitHub Release with binaries
   release:
     name: Create GitHub Release
-    needs: publish
+    needs: [build-binaries, publish]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
 
+      # Download all artifacts
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          files: artifacts/*
           generate_release_notes: true
           draft: false
           prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
