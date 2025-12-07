@@ -18,10 +18,10 @@ use tanuki_mcp_e2e::{TestContextBuilder, TransportKind};
 async fn test_list_groups(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let result = ctx
         .client
@@ -44,10 +44,10 @@ async fn test_list_groups(#[case] transport: TransportKind) {
 async fn test_get_group(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     // List groups first to get a valid group ID
     let groups = ctx
@@ -85,10 +85,10 @@ async fn test_get_group(#[case] transport: TransportKind) {
 async fn test_list_group_members(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let groups = ctx
         .client
@@ -123,10 +123,10 @@ async fn test_list_group_members(#[case] transport: TransportKind) {
 async fn test_list_group_projects(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let groups = ctx
         .client
@@ -161,10 +161,10 @@ async fn test_list_group_projects(#[case] transport: TransportKind) {
 async fn test_list_subgroups(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let groups = ctx
         .client

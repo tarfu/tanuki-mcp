@@ -36,16 +36,27 @@ impl TestContext {
     ///
     /// This uses the shared MCP server for the specified transport,
     /// avoiding the overhead of spawning a new server per test.
-    pub async fn new(transport: TransportKind) -> Result<Self> {
+    ///
+    /// Returns `None` if the requested transport is not available
+    /// (e.g., HTTP transport when `MCP_HTTP_URL` is not set).
+    pub async fn new(transport: TransportKind) -> Result<Option<Self>> {
         let servers = get_shared_servers().await;
 
-        Ok(Self {
-            client: SharedMcpClient::new(servers.get_peer(transport), transport),
+        let peer = match servers.get_peer(transport) {
+            Some(peer) => peer,
+            None => {
+                tracing::info!("Transport {:?} not available, skipping test", transport);
+                return Ok(None);
+            }
+        };
+
+        Ok(Some(Self {
+            client: SharedMcpClient::new(peer, transport),
             gitlab: servers.gitlab(),
             token: servers.token().to_string(),
             project_id: None,
             project_path: None,
-        })
+        }))
     }
 
     /// Get the GitLab container reference.
@@ -129,14 +140,19 @@ impl TestContextBuilder {
     }
 
     /// Build the test context.
-    pub async fn build(self) -> Result<TestContext> {
-        let mut ctx = TestContext::new(self.transport).await?;
+    ///
+    /// Returns `None` if the requested transport is not available.
+    pub async fn build(self) -> Result<Option<TestContext>> {
+        let mut ctx = match TestContext::new(self.transport).await? {
+            Some(ctx) => ctx,
+            None => return Ok(None),
+        };
 
         if self.create_project {
             ctx.create_test_project().await?;
         }
 
-        Ok(ctx)
+        Ok(Some(ctx))
     }
 }
 

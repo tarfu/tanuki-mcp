@@ -69,11 +69,11 @@ async fn create_test_mr(
 async fn test_list_mr_draft_notes(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("list-draft-branch");
@@ -122,11 +122,11 @@ async fn test_list_mr_draft_notes(#[case] transport: TransportKind) {
 async fn test_get_mr_draft_note(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("get-draft-branch");
@@ -180,11 +180,11 @@ async fn test_get_mr_draft_note(#[case] transport: TransportKind) {
 async fn test_create_mr_draft_note(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("create-draft-branch");
@@ -223,11 +223,11 @@ async fn test_create_mr_draft_note(#[case] transport: TransportKind) {
 async fn test_update_mr_draft_note(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("update-draft-branch");
@@ -285,11 +285,11 @@ async fn test_update_mr_draft_note(#[case] transport: TransportKind) {
 async fn test_delete_mr_draft_note(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("delete-draft-branch");
@@ -346,11 +346,11 @@ async fn test_delete_mr_draft_note(#[case] transport: TransportKind) {
 async fn test_publish_mr_draft_note(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("publish-draft-branch");
@@ -407,11 +407,11 @@ async fn test_publish_mr_draft_note(#[case] transport: TransportKind) {
 async fn test_publish_all_mr_draft_notes(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("publish-all-branch");

@@ -17,11 +17,11 @@ use tanuki_mcp_e2e::{TestContextBuilder, TransportKind};
 async fn test_list_commits(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -47,11 +47,11 @@ async fn test_list_commits(#[case] transport: TransportKind) {
 async fn test_get_commit(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -95,11 +95,11 @@ async fn test_get_commit(#[case] transport: TransportKind) {
 async fn test_get_commit_diff(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -142,11 +142,11 @@ async fn test_get_commit_diff(#[case] transport: TransportKind) {
 async fn test_compare_refs(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -211,11 +211,11 @@ async fn test_compare_refs(#[case] transport: TransportKind) {
 async fn test_cherry_pick_commit(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -312,11 +312,11 @@ async fn test_cherry_pick_commit(#[case] transport: TransportKind) {
 async fn test_revert_commit(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -398,11 +398,11 @@ async fn test_revert_commit(#[case] transport: TransportKind) {
 async fn test_create_commit_comment(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -447,11 +447,11 @@ async fn test_create_commit_comment(#[case] transport: TransportKind) {
 async fn test_get_commit_comments(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 

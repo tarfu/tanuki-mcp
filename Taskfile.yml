@@ -78,16 +78,14 @@ tasks:
       - task: e2e:run
 
   e2e:stdio:
-    desc: Run E2E tests with stdio transport only
+    desc: Run E2E tests with stdio transport only (no HTTP server)
     deps: [build]
     cmds:
       - task: e2e:gitlab:up
       - task: e2e:wait
       - task: e2e:runner:setup
       - defer: { task: e2e:gitlab:down }
-      - task: e2e:run
-        vars:
-          FILTER: stdio
+      - task: e2e:run:stdio-only
 
   e2e:http:
     desc: Run E2E tests with HTTP transport only
@@ -102,41 +100,64 @@ tasks:
           FILTER: http
 
   e2e:run:
-    desc: Run E2E tests (internal - creates PAT and sets env vars)
+    desc: Run E2E tests (internal - creates PAT, starts MCP server, runs tests)
     internal: true
     cmds:
       - |
-        echo "Creating PAT for e2e tests..."
-        TOKEN=$(docker exec tanuki-mcp-e2e-gitlab gitlab-rails runner "
-          user = User.find_by(username: 'root')
-          user.personal_access_tokens.find_by(name: 'e2e-test')&.revoke!
-          token = user.personal_access_tokens.create!(
-            name: 'e2e-test',
-            scopes: ['api', 'read_user', 'read_repository', 'write_repository'],
-            expires_at: 1.day.from_now
-          )
-          puts token.token
-        " 2>/dev/null | tail -1)
-
-        if [ -z "$TOKEN" ]; then
-          echo "ERROR: Failed to create PAT"
-          exit 1
-        fi
-        echo "PAT created successfully"
-
+        TOKEN=$(./e2e/scripts/create-pat.sh)
         export GITLAB_URL=http://localhost:8080
         export GITLAB_TOKEN="$TOKEN"
         export RUST_TEST_THREADS="${RUST_TEST_THREADS:-1}"
 
-        echo "Testing API connectivity..."
-        if curl -sf -H "PRIVATE-TOKEN: $TOKEN" "http://localhost:8080/api/v4/user" >/dev/null; then
-          echo "API connection verified"
-        else
-          echo "ERROR: API connection failed"
-          exit 1
-        fi
+        # Create config file for MCP server
+        CONFIG_DIR=$(mktemp -d)
+        CONFIG_FILE="$CONFIG_DIR/config.toml"
+        cat > "$CONFIG_FILE" << EOF
+        [gitlab]
+        url = "http://localhost:8080"
+        token = "$TOKEN"
 
+        [access_control]
+        all = "Full"
+        EOF
+
+        # Start MCP HTTP server in background
+        echo "Starting MCP HTTP server on port 20399..."
+        TANUKI_MCP_CONFIG="$CONFIG_FILE" ./target/debug/tanuki-mcp --transport http --http-port 20399 &
+        MCP_PID=$!
+
+        cleanup() {
+          echo "Stopping MCP server..."
+          kill $MCP_PID 2>/dev/null || true
+          rm -rf "$CONFIG_DIR"
+        }
+        trap cleanup EXIT
+
+        # Wait for MCP server to be ready
+        echo "Waiting for MCP server..."
+        for i in $(seq 1 30); do
+          nc -z localhost 20399 2>/dev/null && break
+          kill -0 $MCP_PID 2>/dev/null || { echo "ERROR: MCP server failed to start"; exit 1; }
+          sleep 0.5
+        done
+        nc -z localhost 20399 2>/dev/null || { echo "ERROR: MCP server failed to start within timeout"; exit 1; }
+        echo "MCP server is ready"
+
+        export MCP_HTTP_URL=http://127.0.0.1:20399/sse
         cargo test -p tanuki-mcp-e2e {{.FILTER}} {{.CLI_ARGS}}
+
+  e2e:run:stdio-only:
+    desc: Run E2E tests without HTTP server (stdio only)
+    internal: true
+    cmds:
+      - |
+        TOKEN=$(./e2e/scripts/create-pat.sh)
+        export GITLAB_URL=http://localhost:8080
+        export GITLAB_TOKEN="$TOKEN"
+        export RUST_TEST_THREADS="${RUST_TEST_THREADS:-1}"
+
+        echo "Running stdio-only tests (HTTP tests will be skipped)..."
+        cargo test -p tanuki-mcp-e2e {{.CLI_ARGS}}
 
   e2e:gitlab:up:
     desc: Start GitLab CE container for E2E tests

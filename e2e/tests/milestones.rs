@@ -17,11 +17,11 @@ use tanuki_mcp_e2e::{TestContextBuilder, TransportKind};
 async fn test_list_milestones(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let milestone_title = common::unique_name("list-milestone");
@@ -60,11 +60,11 @@ async fn test_list_milestones(#[case] transport: TransportKind) {
 async fn test_get_milestone(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let milestone_title = common::unique_name("get-milestone");
@@ -119,11 +119,11 @@ async fn test_get_milestone(#[case] transport: TransportKind) {
 async fn test_create_milestone(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let milestone_title = common::unique_name("create-milestone");
@@ -159,11 +159,11 @@ async fn test_create_milestone(#[case] transport: TransportKind) {
 async fn test_update_milestone(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let milestone_title = common::unique_name("update-milestone");
@@ -216,11 +216,11 @@ async fn test_update_milestone(#[case] transport: TransportKind) {
 async fn test_delete_milestone(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let milestone_title = common::unique_name("delete-milestone");
@@ -271,11 +271,11 @@ async fn test_delete_milestone(#[case] transport: TransportKind) {
 async fn test_get_milestone_issues(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let milestone_title = common::unique_name("issues-milestone");
@@ -339,11 +339,11 @@ async fn test_get_milestone_issues(#[case] transport: TransportKind) {
 async fn test_get_milestone_merge_requests(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let milestone_title = common::unique_name("mr-milestone");

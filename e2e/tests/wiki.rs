@@ -16,11 +16,11 @@ use tanuki_mcp_e2e::{TestContextBuilder, TransportKind};
 async fn test_list_wiki_pages(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let page_title = common::unique_name("list-wiki");
@@ -60,11 +60,11 @@ async fn test_list_wiki_pages(#[case] transport: TransportKind) {
 async fn test_get_wiki_page(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let page_title = common::unique_name("get-wiki");
@@ -113,11 +113,11 @@ async fn test_get_wiki_page(#[case] transport: TransportKind) {
 async fn test_create_wiki_page(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let page_title = common::unique_name("create-wiki");
@@ -153,11 +153,11 @@ async fn test_create_wiki_page(#[case] transport: TransportKind) {
 async fn test_update_wiki_page(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let page_title = common::unique_name("update-wiki");
@@ -211,11 +211,11 @@ async fn test_update_wiki_page(#[case] transport: TransportKind) {
 async fn test_delete_wiki_page(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let page_title = common::unique_name("delete-wiki");

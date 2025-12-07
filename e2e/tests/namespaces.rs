@@ -16,10 +16,10 @@ use tanuki_mcp_e2e::{TestContextBuilder, TransportKind};
 async fn test_list_namespaces(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let result = ctx
         .client
@@ -43,10 +43,10 @@ async fn test_list_namespaces(#[case] transport: TransportKind) {
 async fn test_get_namespace(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     // List namespaces first to get a valid namespace ID
     let namespaces = ctx
@@ -88,10 +88,10 @@ async fn test_get_namespace(#[case] transport: TransportKind) {
 async fn test_namespace_exists(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     // Get current user's namespace
     let user = ctx
@@ -126,10 +126,10 @@ async fn test_namespace_exists(#[case] transport: TransportKind) {
 async fn test_namespace_not_exists(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let non_existent = common::unique_name("nonexistent-namespace");
 

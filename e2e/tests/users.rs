@@ -16,10 +16,10 @@ use tanuki_mcp_e2e::{TestContextBuilder, TransportKind};
 async fn test_get_current_user(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let result = ctx
         .client
@@ -42,10 +42,10 @@ async fn test_get_current_user(#[case] transport: TransportKind) {
 async fn test_list_users(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let result = ctx
         .client
@@ -69,10 +69,10 @@ async fn test_list_users(#[case] transport: TransportKind) {
 async fn test_get_user(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     // Get current user first to get a valid user ID
     let current = ctx
@@ -106,10 +106,10 @@ async fn test_get_user(#[case] transport: TransportKind) {
 async fn test_get_user_activities(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let result = ctx
         .client

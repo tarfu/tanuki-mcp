@@ -49,11 +49,11 @@ test_job:
 async fn test_list_pipelines(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -93,11 +93,11 @@ async fn test_list_pipelines(#[case] transport: TransportKind) {
 async fn test_get_pipeline(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -146,11 +146,11 @@ async fn test_get_pipeline(#[case] transport: TransportKind) {
 async fn test_create_pipeline(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -183,11 +183,11 @@ async fn test_create_pipeline(#[case] transport: TransportKind) {
 async fn test_cancel_pipeline(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -235,11 +235,11 @@ async fn test_cancel_pipeline(#[case] transport: TransportKind) {
 async fn test_retry_pipeline(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -290,11 +290,11 @@ async fn test_retry_pipeline(#[case] transport: TransportKind) {
 async fn test_delete_pipeline(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -346,11 +346,11 @@ async fn test_delete_pipeline(#[case] transport: TransportKind) {
 async fn test_get_pipeline_variables(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 

@@ -36,11 +36,11 @@ async fn create_test_issue(ctx: &tanuki_mcp_e2e::TestContext, project: &str) -> 
 async fn test_list_issue_notes(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let issue_iid = create_test_issue(&ctx, &project_path).await;
@@ -70,11 +70,11 @@ async fn test_list_issue_notes(#[case] transport: TransportKind) {
 async fn test_create_issue_note(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let issue_iid = create_test_issue(&ctx, &project_path).await;
@@ -108,11 +108,11 @@ async fn test_create_issue_note(#[case] transport: TransportKind) {
 async fn test_get_issue_note(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let issue_iid = create_test_issue(&ctx, &project_path).await;
@@ -164,11 +164,11 @@ async fn test_get_issue_note(#[case] transport: TransportKind) {
 async fn test_update_issue_note(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let issue_iid = create_test_issue(&ctx, &project_path).await;
@@ -222,11 +222,11 @@ async fn test_update_issue_note(#[case] transport: TransportKind) {
 async fn test_delete_issue_note(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let issue_iid = create_test_issue(&ctx, &project_path).await;

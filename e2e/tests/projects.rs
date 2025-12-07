@@ -17,9 +17,9 @@ use tanuki_mcp_e2e::{TestContext, TestContextBuilder, TransportKind};
 async fn test_list_projects(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContext::new(transport)
+    let Some(ctx) = TestContext::new(transport)
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let result = ctx
         .client
@@ -41,11 +41,11 @@ async fn test_list_projects(#[case] transport: TransportKind) {
 async fn test_get_project(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -72,9 +72,9 @@ async fn test_get_project(#[case] transport: TransportKind) {
 async fn test_create_project(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContext::new(transport)
+    let Some(ctx) = TestContext::new(transport)
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_name = common::unique_name("test-create");
 
@@ -112,11 +112,11 @@ async fn test_create_project(#[case] transport: TransportKind) {
 async fn test_update_project(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let new_description = "Updated by E2E test";
@@ -149,9 +149,9 @@ async fn test_update_project(#[case] transport: TransportKind) {
 async fn test_delete_project(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContext::new(transport)
+    let Some(ctx) = TestContext::new(transport)
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     // Create a project to delete
     let project_name = common::unique_name("test-delete");
@@ -198,11 +198,11 @@ async fn test_delete_project(#[case] transport: TransportKind) {
 async fn test_fork_project(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let fork_name = common::unique_name("test-fork");
@@ -240,11 +240,11 @@ async fn test_fork_project(#[case] transport: TransportKind) {
 async fn test_list_project_members(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -275,9 +275,9 @@ async fn test_list_project_members(#[case] transport: TransportKind) {
 async fn test_list_projects_pagination(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContext::new(transport)
+    let Some(ctx) = TestContext::new(transport)
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     // List with explicit page and per_page
     let result = ctx

@@ -17,11 +17,11 @@ use tanuki_mcp_e2e::{TestContextBuilder, TransportKind};
 async fn test_list_releases(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let tag_name = common::unique_name("release-tag");
@@ -76,11 +76,11 @@ async fn test_list_releases(#[case] transport: TransportKind) {
 async fn test_get_release(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let tag_name = common::unique_name("get-release-tag");
@@ -141,11 +141,11 @@ async fn test_get_release(#[case] transport: TransportKind) {
 async fn test_create_release(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let tag_name = common::unique_name("create-release-tag");
@@ -199,11 +199,11 @@ async fn test_create_release(#[case] transport: TransportKind) {
 async fn test_update_release(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let tag_name = common::unique_name("update-release-tag");
@@ -266,11 +266,11 @@ async fn test_update_release(#[case] transport: TransportKind) {
 async fn test_delete_release(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let tag_name = common::unique_name("delete-release-tag");
@@ -331,11 +331,11 @@ async fn test_delete_release(#[case] transport: TransportKind) {
 async fn test_get_release_evidence(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let tag_name = common::unique_name("evidence-release-tag");

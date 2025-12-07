@@ -17,11 +17,11 @@ use tanuki_mcp_e2e::{TestContextBuilder, TransportKind};
 async fn test_get_repository_tree(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -50,11 +50,11 @@ async fn test_get_repository_tree(#[case] transport: TransportKind) {
 async fn test_create_file(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let file_path = format!("test-{}.txt", common::unique_name("file"));
@@ -89,11 +89,11 @@ async fn test_create_file(#[case] transport: TransportKind) {
 async fn test_get_repository_file(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -144,11 +144,11 @@ async fn test_get_repository_file(#[case] transport: TransportKind) {
 async fn test_update_file(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let file_path = format!("test-{}.txt", common::unique_name("update"));
@@ -199,11 +199,11 @@ async fn test_update_file(#[case] transport: TransportKind) {
 async fn test_delete_repository_file(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let file_path = format!("test-{}.txt", common::unique_name("delete"));
@@ -256,11 +256,11 @@ async fn test_delete_repository_file(#[case] transport: TransportKind) {
 async fn test_get_file_blame(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let file_path = format!("test-{}.txt", common::unique_name("blame"));
@@ -312,11 +312,11 @@ async fn test_get_file_blame(#[case] transport: TransportKind) {
 async fn test_get_repository_tree_with_path(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 

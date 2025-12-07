@@ -17,11 +17,14 @@ use tanuki_mcp_e2e::{TestContextBuilder, TransportKind};
 async fn test_list_branches(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context")
+    else {
+        return; // Transport not available, skip test
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -47,11 +50,14 @@ async fn test_list_branches(#[case] transport: TransportKind) {
 async fn test_get_branch(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context")
+    else {
+        return; // Transport not available, skip test
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -81,11 +87,14 @@ async fn test_get_branch(#[case] transport: TransportKind) {
 async fn test_create_branch(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context")
+    else {
+        return; // Transport not available, skip test
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("test-branch");
@@ -120,11 +129,14 @@ async fn test_create_branch(#[case] transport: TransportKind) {
 async fn test_delete_branch(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context")
+    else {
+        return; // Transport not available, skip test
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("delete-branch");
@@ -173,11 +185,14 @@ async fn test_delete_branch(#[case] transport: TransportKind) {
 async fn test_protect_branch(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context")
+    else {
+        return; // Transport not available, skip test
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("protect-branch");
@@ -223,11 +238,14 @@ async fn test_protect_branch(#[case] transport: TransportKind) {
 async fn test_unprotect_branch(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context")
+    else {
+        return; // Transport not available, skip test
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("unprotect-branch");

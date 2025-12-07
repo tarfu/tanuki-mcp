@@ -15,7 +15,6 @@
 
 use std::path::PathBuf;
 use std::sync::OnceLock;
-use std::time::Duration;
 
 use anyhow::{Context, Result};
 use rmcp::model::{CallToolRequestParam, CallToolResult, ListToolsResult};
@@ -24,7 +23,7 @@ use rmcp::transport::child_process::TokioChildProcess;
 use rmcp::transport::sse::SseTransport;
 use serde_json::Value;
 use tempfile::TempDir;
-use tokio::process::{Child, Command};
+use tokio::process::Command;
 use tokio::runtime::Runtime;
 use tokio::sync::Mutex as TokioMutex;
 
@@ -86,7 +85,7 @@ pub async fn get_shared_servers() -> &'static SharedServers {
 
 /// Container for shared servers (one per transport type).
 pub struct SharedServers {
-    http: SharedHttpClient,
+    http: Option<SharedHttpClient>, // None if MCP_HTTP_URL not set
     stdio: SharedStdioClient,
     gitlab: GitLabContainer,
     token: String,
@@ -94,7 +93,7 @@ pub struct SharedServers {
 }
 
 // Safety: SharedServers is safe to share across threads because:
-// - http: SharedHttpClient contains Peer which is Clone + Send + Sync
+// - http: Option<SharedHttpClient> contains Peer which is Clone + Send + Sync
 // - stdio: SharedStdioClient uses Arc<TokioMutex<...>>
 // - gitlab: GitLabContainer is Send + Sync
 // - token: String is Send + Sync
@@ -112,17 +111,28 @@ impl SharedServers {
 
         let gitlab = GitLabContainer::with_config(GitLabConfig::from_url(&gitlab_url));
 
-        // Create config directory and file
+        // Create config directory and file (needed for stdio)
         let config_dir = TempDir::new().context("Failed to create temp directory")?;
         let config_path = config_dir.path().join("config.toml");
         let config_content = Self::generate_config(&gitlab.config().base_url(), &token);
         std::fs::write(&config_path, &config_content).context("Failed to write config file")?;
 
-        // Find binary
+        // Find binary (needed for stdio)
         let binary_path = Self::find_binary()?;
 
-        // Initialize both servers
-        let http = SharedHttpClient::init(&binary_path, &config_path).await?;
+        // HTTP: only connect if MCP_HTTP_URL is set (server managed externally)
+        let http = match std::env::var("MCP_HTTP_URL") {
+            Ok(url) => {
+                tracing::info!("Connecting to external HTTP server at {}", url);
+                Some(SharedHttpClient::connect(&url).await?)
+            }
+            Err(_) => {
+                tracing::info!("MCP_HTTP_URL not set, HTTP tests will be skipped");
+                None
+            }
+        };
+
+        // Stdio: always spawn locally
         let stdio = SharedStdioClient::init(&binary_path, &config_path).await?;
 
         tracing::info!("Shared MCP servers initialized successfully");
@@ -137,11 +147,18 @@ impl SharedServers {
     }
 
     /// Get a peer for the specified transport type.
-    pub fn get_peer(&self, transport: TransportKind) -> SharedPeer {
+    ///
+    /// Returns `None` for HTTP transport if `MCP_HTTP_URL` was not set.
+    pub fn get_peer(&self, transport: TransportKind) -> Option<SharedPeer> {
         match transport {
-            TransportKind::Http => SharedPeer::Http(self.http.peer()),
-            TransportKind::Stdio => SharedPeer::Stdio(self.stdio.clone()),
+            TransportKind::Http => self.http.as_ref().map(|h| SharedPeer::Http(h.peer())),
+            TransportKind::Stdio => Some(SharedPeer::Stdio(self.stdio.clone())),
         }
+    }
+
+    /// Check if HTTP transport is available.
+    pub fn has_http(&self) -> bool {
+        self.http.is_some()
     }
 
     /// Get the shared GitLab container reference.
@@ -209,81 +226,38 @@ all = "Full"
 }
 
 /// Shared HTTP client - peer can be cloned freely for concurrent use.
+///
+/// Connects to an external HTTP server specified by `MCP_HTTP_URL`.
+/// The server must be started externally (e.g., via Taskfile).
 pub struct SharedHttpClient {
     peer: Peer<RoleClient>,
-    // Server process - kept alive for duration of test suite
-    _server_process: Child,
 }
 
 impl SharedHttpClient {
-    /// Fixed port for shared HTTP server (separate from production port 20289).
-    const SHARED_HTTP_PORT: u16 = 20399;
-
-    /// Initialize the shared HTTP server.
-    async fn init(binary_path: &PathBuf, config_path: &PathBuf) -> Result<Self> {
-        tracing::debug!(
-            "Starting shared HTTP server on port {}",
-            Self::SHARED_HTTP_PORT
-        );
-
-        let mut cmd = Command::new(binary_path);
-        cmd.arg("--transport")
-            .arg("http")
-            .arg("--http-port")
-            .arg(Self::SHARED_HTTP_PORT.to_string())
-            .env("TANUKI_MCP_CONFIG", config_path)
-            .stdout(std::process::Stdio::inherit())
-            .stderr(std::process::Stdio::inherit());
-
-        let child = cmd.spawn().context("Failed to spawn HTTP server")?;
-
-        // Wait for server to be ready
-        let sse_url = format!("http://127.0.0.1:{}/sse", Self::SHARED_HTTP_PORT);
-        Self::wait_for_server(&sse_url, Duration::from_secs(30)).await?;
-
-        // Connect via SSE
-        let transport = SseTransport::start(&sse_url)
-            .await
-            .context("Failed to create SSE transport")?;
+    /// Connect to an external HTTP server.
+    ///
+    /// The URL should be the SSE endpoint (e.g., `http://127.0.0.1:20399/sse`).
+    async fn connect(url: &str) -> Result<Self> {
+        let transport = SseTransport::start(url).await.with_context(|| {
+            format!(
+                "Failed to connect to MCP server at {}. Is the server running?",
+                url
+            )
+        })?;
 
         let running_service =
             ().serve(transport)
                 .await
-                .context("Failed to connect to MCP server via SSE")?;
+                .context("Failed to start MCP client service")?;
 
         let peer = running_service.peer().clone();
 
         // Spawn the service task in the background - it will run until cancelled
-        // The task is spawned in the current runtime (service runtime)
         tokio::spawn(async move {
             let _ = running_service.waiting().await;
         });
 
-        Ok(Self {
-            peer,
-            _server_process: child,
-        })
-    }
-
-    /// Wait for the HTTP server to be ready.
-    async fn wait_for_server(url: &str, timeout: Duration) -> Result<()> {
-        let start = std::time::Instant::now();
-        let url_parsed = url::Url::parse(url).context("Invalid URL")?;
-        let host = url_parsed.host_str().unwrap_or("127.0.0.1");
-        let port = url_parsed.port().unwrap_or(80);
-        let addr = format!("{}:{}", host, port);
-
-        loop {
-            if start.elapsed() > timeout {
-                anyhow::bail!("Timeout waiting for HTTP server at {}", url);
-            }
-
-            if tokio::net::TcpStream::connect(&addr).await.is_ok() {
-                tokio::time::sleep(Duration::from_millis(100)).await;
-                return Ok(());
-            }
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
+        Ok(Self { peer })
     }
 
     /// Get a cloned peer for concurrent use.

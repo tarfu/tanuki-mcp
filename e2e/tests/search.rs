@@ -16,11 +16,11 @@ use tanuki_mcp_e2e::{TestContextBuilder, TransportKind};
 async fn test_search_global(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     // Wait for GitLab's search index to update
     tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
@@ -50,11 +50,11 @@ async fn test_search_global(#[case] transport: TransportKind) {
 async fn test_search_project(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -104,10 +104,10 @@ async fn test_search_project(#[case] transport: TransportKind) {
 async fn test_search_group(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     // List groups first to get a valid group ID
     let groups = ctx
@@ -150,11 +150,11 @@ async fn test_search_group(#[case] transport: TransportKind) {
 async fn test_search_global_issues(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -200,11 +200,11 @@ async fn test_search_global_issues(#[case] transport: TransportKind) {
 async fn test_search_project_commits(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 

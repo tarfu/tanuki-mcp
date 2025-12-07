@@ -68,11 +68,11 @@ async fn create_test_mr(
 async fn test_list_merge_requests(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("list-mr-branch");
@@ -101,11 +101,11 @@ async fn test_list_merge_requests(#[case] transport: TransportKind) {
 async fn test_get_merge_request(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("get-mr-branch");
@@ -139,11 +139,11 @@ async fn test_get_merge_request(#[case] transport: TransportKind) {
 async fn test_create_merge_request(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("create-mr-branch");
@@ -210,11 +210,11 @@ async fn test_create_merge_request(#[case] transport: TransportKind) {
 async fn test_update_merge_request(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("update-mr-branch");
@@ -253,11 +253,11 @@ async fn test_update_merge_request(#[case] transport: TransportKind) {
 async fn test_merge_merge_request(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("merge-mr-branch");
@@ -300,11 +300,11 @@ async fn test_merge_merge_request(#[case] transport: TransportKind) {
 async fn test_get_merge_request_diffs(#[case] transport: TransportKind) {
     common::init_tracing();
 
-    let ctx = TestContextBuilder::new(transport)
+    let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context");
+        .expect("Failed to create context") else { return; };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("diffs-mr-branch");
