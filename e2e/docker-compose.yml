@@ -1,0 +1,85 @@
+# GitLab CE container for E2E testing
+#
+# Usage:
+#   docker compose -f e2e/docker-compose.yml up -d
+#   docker compose -f e2e/docker-compose.yml down -v
+#
+# Note: GitLab CE takes 3-5 minutes to fully start up.
+# Check health with: curl -s http://localhost:8080/users/sign_in
+
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: tanuki-mcp-e2e-gitlab
+    hostname: gitlab.local
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+      - "8443:443"
+      - "2222:22"
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        # External URL (no port - NGINX listens on 80 internally, mapped to 8080 on host)
+        external_url 'http://localhost'
+
+        # Root password for initial login
+        gitlab_rails['initial_root_password'] = 'testpassword123!'
+
+        # Disable monitoring services for faster startup
+        prometheus_monitoring['enable'] = false
+        alertmanager['enable'] = false
+        node_exporter['enable'] = false
+        redis_exporter['enable'] = false
+        postgres_exporter['enable'] = false
+        gitlab_exporter['enable'] = false
+
+        # Disable container registry (not needed for tests)
+        registry['enable'] = false
+
+        # Disable pages (not needed for tests)
+        pages_external_url nil
+        gitlab_pages['enable'] = false
+
+        # Disable Mattermost (not needed for tests)
+        mattermost['enable'] = false
+
+        # Reduce resource usage (minimized for e2e tests)
+        puma['worker_processes'] = 1
+        sidekiq['concurrency'] = 2
+
+        # Faster git operations
+        gitlab_rails['gitaly_timeout_default'] = 30
+        gitlab_rails['gitaly_timeout_medium'] = 60
+
+        # Logging
+        logging['logrotate_frequency'] = 'daily'
+        logging['logrotate_size'] = nil
+        logging['logrotate_rotate'] = 7
+    volumes:
+      - gitlab-config:/etc/gitlab
+      - gitlab-logs:/var/log/gitlab
+      - gitlab-data:/var/opt/gitlab
+    shm_size: "256m"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/users/sign_in"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 300s
+
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    container_name: tanuki-mcp-e2e-gitlab-runner
+    hostname: gitlab-runner
+    restart: unless-stopped
+    depends_on:
+      gitlab:
+        condition: service_healthy
+    volumes:
+      - gitlab-runner-config:/etc/gitlab-runner
+
+volumes:
+  gitlab-config:
+  gitlab-logs:
+  gitlab-data:
+  gitlab-runner-config:

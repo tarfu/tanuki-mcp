@@ -347,7 +347,7 @@ impl ToolExecutor for GetJobLog {
         let endpoint = format!("/projects/{}/jobs/{}/trace", project, self.job_id);
 
         // The trace endpoint returns plain text, not JSON
-        let result: String = ctx.gitlab.get(&endpoint).await?;
+        let result = ctx.gitlab.get_text(&endpoint).await?;
 
         Ok(ToolOutput::text(result))
     }

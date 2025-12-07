@@ -1,1 +1,4 @@
 /target
+
+# E2E test artifacts
+.e2e-token

@@ -1,0 +1,43 @@
+[package]
+name = "tanuki-mcp-e2e"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "End-to-end tests for tanuki-mcp"
+
+[dependencies]
+# MCP SDK - client features for testing
+# Using same version as main crate (0.1.5) for compatibility
+rmcp = { version = "0.1", features = ["client", "transport-child-process", "transport-sse"] }
+
+# Async runtime
+tokio = { version = "1", features = ["full", "process", "test-util"] }
+async-trait = "0.1"
+
+# HTTP client for GitLab health checks
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Docker container management
+testcontainers = "0.23"
+
+# Error handling
+anyhow = "1"
+thiserror = "2"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Test utilities
+rstest = "0.23"
+uuid = { version = "1", features = ["v4"] }
+
+# Temp files for config
+tempfile = "3"
+
+# URL parsing
+url = "2"

@@ -1,5 +1,6 @@
 [workspace]
-members = [".", "tanuki-mcp-macros"]
+members = [".", "tanuki-mcp-macros", "e2e"]
+default-members = [".", "tanuki-mcp-macros"]
 resolver = "2"
 
 [package]

@@ -134,6 +134,21 @@ impl GitLabClient {
         self.get(endpoint).await
     }
 
+    /// Make a GET request returning raw text (not JSON)
+    #[instrument(skip(self), fields(endpoint = %endpoint))]
+    pub async fn get_text(&self, endpoint: &str) -> GitLabResult<String> {
+        let url = self.url(endpoint);
+        let request = self.http.get(&url);
+        let request = self.authenticate(request).await?;
+
+        let response = self.execute(request).await?;
+        let text = response.text().await.map_err(|e| {
+            GitLabError::InvalidResponse(format!("Failed to read response text: {}", e))
+        })?;
+
+        Ok(text)
+    }
+
     /// Make a POST request
     #[instrument(skip(self, body), fields(endpoint = %endpoint))]
     pub async fn post<T: DeserializeOwned, B: Serialize + ?Sized>(
