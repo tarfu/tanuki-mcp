@@ -3,7 +3,7 @@
 //! Runs the MCP server over HTTP with Server-Sent Events (SSE).
 
 use crate::server::GitLabMcpHandler;
-use crate::util::find_available_port;
+use crate::util::bind_port_strict;
 use rmcp::transport::sse_server::{SseServer, SseServerConfig};
 use std::net::SocketAddr;
 use tokio_util::sync::CancellationToken;
@@ -54,7 +54,8 @@ impl HttpConfig {
 /// This starts an HTTP server that accepts SSE connections and handles
 /// MCP protocol messages over the SSE channel.
 ///
-/// Port discovery is used to find an available port if the configured port is taken.
+/// The server will fail if the configured port is already in use. This is
+/// intentional to ensure clients can reliably connect to the expected port.
 ///
 /// # Arguments
 /// * `handler_factory` - A function that creates a new handler for each connection
@@ -69,10 +70,10 @@ pub async fn run_http<F>(
 where
     F: Fn() -> GitLabMcpHandler + Send + Sync + 'static,
 {
-    // Find an available port using port discovery
+    // Verify the port is available - fail if not (no fallback)
     let host = config.bind.ip().to_string();
     let preferred_port = config.bind.port();
-    let actual_port = find_available_port(&host, preferred_port).await?;
+    let actual_port = bind_port_strict(&host, preferred_port).await?;
 
     let bind_addr = SocketAddr::new(config.bind.ip(), actual_port);
 

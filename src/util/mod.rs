@@ -4,6 +4,33 @@ use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tracing::warn;
 
+/// Verify that a specific port is available, failing if it is not.
+///
+/// Unlike `find_available_port`, this does not fall back to alternate ports.
+/// Use this for services where clients expect a specific port (e.g., MCP HTTP transport).
+///
+/// # Arguments
+/// * `host` - The host address to bind to (e.g., "127.0.0.1")
+/// * `port` - The exact port number required
+///
+/// # Returns
+/// The port number if available, or an error if the port is in use.
+///
+/// # Example
+/// ```ignore
+/// let port = bind_port_strict("127.0.0.1", 20299).await?;
+/// println!("Port {} is available", port);
+/// ```
+pub async fn bind_port_strict(host: &str, port: u16) -> std::io::Result<u16> {
+    let addr: SocketAddr = format!("{}:{}", host, port)
+        .parse()
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, e))?;
+
+    let listener = TcpListener::bind(addr).await?;
+    drop(listener);
+    Ok(port)
+}
+
 /// Find an available port, starting from the preferred port.
 ///
 /// This function attempts to find an available port using the following strategy:
@@ -66,6 +93,27 @@ pub async fn find_available_port(host: &str, preferred: u16) -> std::io::Result<
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn test_bind_port_strict_available() {
+        // Use a high port that's likely available
+        let port = 49200;
+        let result = bind_port_strict("127.0.0.1", port).await.unwrap();
+        assert_eq!(result, port);
+    }
+
+    #[tokio::test]
+    async fn test_bind_port_strict_unavailable() {
+        // Bind to a port first
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let bound_port = listener.local_addr().unwrap().port();
+
+        // Try to bind strictly to the same port - should fail
+        let result = bind_port_strict("127.0.0.1", bound_port).await;
+        assert!(result.is_err());
+
+        drop(listener);
+    }
 
     #[tokio::test]
     async fn test_find_available_port_preferred() {

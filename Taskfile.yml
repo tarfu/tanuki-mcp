@@ -74,10 +74,8 @@ tasks:
       - task: e2e:gitlab:up
       - task: e2e:wait
       - task: e2e:runner:setup
-      - task: e2e:pat:create
       - defer: { task: e2e:gitlab:down }
-      - defer: { task: e2e:pat:cleanup }
-      - cargo test -p tanuki-mcp-e2e -- --test-threads=1
+      - task: e2e:run
 
   e2e:stdio:
     desc: Run E2E tests with stdio transport only
@@ -86,10 +84,10 @@ tasks:
       - task: e2e:gitlab:up
       - task: e2e:wait
       - task: e2e:runner:setup
-      - task: e2e:pat:create
       - defer: { task: e2e:gitlab:down }
-      - defer: { task: e2e:pat:cleanup }
-      - cargo test -p tanuki-mcp-e2e -- --test-threads=1 stdio
+      - task: e2e:run
+        vars:
+          FILTER: stdio
 
   e2e:http:
     desc: Run E2E tests with HTTP transport only
@@ -98,10 +96,47 @@ tasks:
       - task: e2e:gitlab:up
       - task: e2e:wait
       - task: e2e:runner:setup
-      - task: e2e:pat:create
       - defer: { task: e2e:gitlab:down }
-      - defer: { task: e2e:pat:cleanup }
-      - cargo test -p tanuki-mcp-e2e -- --test-threads=1 http
+      - task: e2e:run
+        vars:
+          FILTER: http
+
+  e2e:run:
+    desc: Run E2E tests (internal - creates PAT and sets env vars)
+    internal: true
+    cmds:
+      - |
+        echo "Creating PAT for e2e tests..."
+        TOKEN=$(docker exec tanuki-mcp-e2e-gitlab gitlab-rails runner "
+          user = User.find_by(username: 'root')
+          user.personal_access_tokens.find_by(name: 'e2e-test')&.revoke!
+          token = user.personal_access_tokens.create!(
+            name: 'e2e-test',
+            scopes: ['api', 'read_user', 'read_repository', 'write_repository'],
+            expires_at: 1.day.from_now
+          )
+          puts token.token
+        " 2>/dev/null | tail -1)
+
+        if [ -z "$TOKEN" ]; then
+          echo "ERROR: Failed to create PAT"
+          exit 1
+        fi
+        echo "PAT created successfully"
+
+        export GITLAB_URL=http://localhost:8080
+        export GITLAB_TOKEN="$TOKEN"
+        export RUST_TEST_THREADS="${RUST_TEST_THREADS:-1}"
+
+        echo "Testing API connectivity..."
+        if curl -sf -H "PRIVATE-TOKEN: $TOKEN" "http://localhost:8080/api/v4/user" >/dev/null; then
+          echo "API connection verified"
+        else
+          echo "ERROR: API connection failed"
+          exit 1
+        fi
+
+        cargo test -p tanuki-mcp-e2e {{.FILTER}} {{.CLI_ARGS}}
 
   e2e:gitlab:up:
     desc: Start GitLab CE container for E2E tests
@@ -126,7 +161,7 @@ tasks:
       - |
         echo "Waiting for GitLab to be ready (this may take 3-5 minutes)..."
         until curl -sf http://localhost:8080/users/sign_in >/dev/null 2>&1; do
-          echo "  Still waiting..."
+          echo "  Waiting for login page..."
           sleep 10
         done
         echo "GitLab is ready!"
@@ -175,37 +210,6 @@ tasks:
         # Wait for runner to connect
         sleep 2
         echo "GitLab runner setup complete!"
-
-  e2e:pat:create:
-    desc: Create a shared PAT for e2e tests (speeds up tests)
-    cmds:
-      - |
-        echo "Creating shared PAT for e2e tests..."
-        TOKEN=$(docker exec tanuki-mcp-e2e-gitlab gitlab-rails runner "
-          user = User.find_by(username: 'root')
-          # Revoke existing shared token if present
-          user.personal_access_tokens.find_by(name: 'e2e-shared-token')&.revoke!
-          # Create new token
-          token = user.personal_access_tokens.create!(
-            name: 'e2e-shared-token',
-            scopes: ['api', 'read_user', 'read_repository', 'write_repository'],
-            expires_at: 1.day.from_now
-          )
-          puts token.token
-        " 2>/dev/null | tail -1)
-
-        if [ -z "$TOKEN" ]; then
-          echo "ERROR: Failed to create shared PAT"
-          exit 1
-        fi
-
-        echo "$TOKEN" > .e2e-token
-        echo "Shared PAT saved to .e2e-token"
-
-  e2e:pat:cleanup:
-    desc: Remove shared PAT file
-    cmds:
-      - rm -f .e2e-token
 
   e2e:status:
     desc: Check GitLab container status

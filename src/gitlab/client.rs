@@ -177,6 +177,20 @@ impl GitLabClient {
         self.post(endpoint, body).await
     }
 
+    /// Make a POST request that expects no content in response (HTTP 204)
+    pub async fn post_no_content<B: Serialize + ?Sized>(
+        &self,
+        endpoint: &str,
+        body: &B,
+    ) -> GitLabResult<()> {
+        let url = self.url(endpoint);
+        let request = self.http.post(&url).json(body);
+        let request = self.authenticate(request).await?;
+
+        self.execute(request).await?;
+        Ok(())
+    }
+
     /// Make a PUT request
     #[instrument(skip(self, body), fields(endpoint = %endpoint))]
     pub async fn put<T: DeserializeOwned, B: Serialize + ?Sized>(
@@ -203,6 +217,20 @@ impl GitLabClient {
         body: &B,
     ) -> GitLabResult<serde_json::Value> {
         self.put(endpoint, body).await
+    }
+
+    /// Make a PUT request that expects no content in response (HTTP 204)
+    pub async fn put_no_content<B: Serialize + ?Sized>(
+        &self,
+        endpoint: &str,
+        body: &B,
+    ) -> GitLabResult<()> {
+        let url = self.url(endpoint);
+        let request = self.http.put(&url).json(body);
+        let request = self.authenticate(request).await?;
+
+        self.execute(request).await?;
+        Ok(())
     }
 
     /// Make a DELETE request

@@ -1,0 +1,35 @@
+name: E2E Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      gitlab_url:
+        description: 'GitLab URL (e.g., https://gitlab.example.com)'
+        required: true
+        type: string
+      test_filter:
+        description: 'Test filter (optional, e.g., "stdio" or "http")'
+        required: false
+        type: string
+        default: ''
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.91"
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build
+      - name: Run E2E tests
+        env:
+          GITLAB_URL: ${{ github.event.inputs.gitlab_url }}
+          GITLAB_TOKEN: ${{ secrets.GITLAB_E2E_TOKEN }}
+        run: cargo test -p tanuki-mcp-e2e ${{ github.event.inputs.test_filter }}
