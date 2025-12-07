@@ -3,11 +3,46 @@
 //! Tests: list_merge_requests, get_merge_request, create_merge_request,
 //!        update_merge_request, merge_merge_request, get_merge_request_diffs
 
-mod common;
+use crate::common;
 
 use rstest::rstest;
 use serde_json::json;
 use tanuki_mcp_e2e::{TestContextBuilder, TransportKind};
+
+/// Wait for MR to be ready (not in "preparing" status).
+/// GitLab needs time to process the MR after creation.
+async fn wait_for_mr_ready(
+    ctx: &tanuki_mcp_e2e::TestContext,
+    project_path: &str,
+    mr_iid: i64,
+) -> serde_json::Value {
+    for _ in 0..10 {
+        let mr = ctx
+            .client
+            .call_tool_json(
+                "get_merge_request",
+                json!({
+                    "project": project_path,
+                    "merge_request_iid": mr_iid
+                }),
+            )
+            .await
+            .expect("Failed to get MR");
+
+        let status = mr
+            .get("detailed_merge_status")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+
+        if status != "preparing" && status != "checking" {
+            return mr;
+        }
+
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    }
+
+    panic!("MR did not become ready within timeout");
+}
 
 /// Helper to create a merge request for testing.
 async fn create_test_mr(
@@ -72,7 +107,10 @@ async fn test_list_merge_requests(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("list-mr-branch");
@@ -105,7 +143,10 @@ async fn test_get_merge_request(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("get-mr-branch");
@@ -143,7 +184,10 @@ async fn test_create_merge_request(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("create-mr-branch");
@@ -214,7 +258,10 @@ async fn test_update_merge_request(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("update-mr-branch");
@@ -257,7 +304,10 @@ async fn test_merge_merge_request(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("merge-mr-branch");
@@ -265,8 +315,8 @@ async fn test_merge_merge_request(#[case] transport: TransportKind) {
     let mr = create_test_mr(&ctx, &project_path, &branch_name).await;
     let mr_iid = mr.get("iid").and_then(|v| v.as_i64()).expect("No MR iid");
 
-    // Wait a moment for GitLab to process the MR
-    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+    // Wait for MR to be ready for merging
+    let _ = wait_for_mr_ready(&ctx, &project_path, mr_iid).await;
 
     let result = ctx
         .client
@@ -304,13 +354,19 @@ async fn test_get_merge_request_diffs(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("diffs-mr-branch");
 
     let mr = create_test_mr(&ctx, &project_path, &branch_name).await;
     let mr_iid = mr.get("iid").and_then(|v| v.as_i64()).expect("No MR iid");
+
+    // Wait for MR to be ready (diffs may not be available immediately)
+    let _ = wait_for_mr_ready(&ctx, &project_path, mr_iid).await;
 
     let result = ctx
         .client

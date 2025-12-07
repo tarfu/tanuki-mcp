@@ -3,7 +3,7 @@
 //! Tests: list_projects, get_project, create_project, update_project,
 //!        delete_project, fork_project, list_project_members
 
-mod common;
+use crate::common;
 
 use rstest::rstest;
 use serde_json::json;
@@ -19,7 +19,10 @@ async fn test_list_projects(#[case] transport: TransportKind) {
 
     let Some(ctx) = TestContext::new(transport)
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let result = ctx
         .client
@@ -45,7 +48,10 @@ async fn test_get_project(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -74,7 +80,10 @@ async fn test_create_project(#[case] transport: TransportKind) {
 
     let Some(ctx) = TestContext::new(transport)
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_name = common::unique_name("test-create");
 
@@ -116,7 +125,10 @@ async fn test_update_project(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let new_description = "Updated by E2E test";
@@ -151,7 +163,10 @@ async fn test_delete_project(#[case] transport: TransportKind) {
 
     let Some(ctx) = TestContext::new(transport)
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     // Create a project to delete
     let project_name = common::unique_name("test-delete");
@@ -202,7 +217,10 @@ async fn test_fork_project(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let fork_name = common::unique_name("test-fork");
@@ -213,7 +231,8 @@ async fn test_fork_project(#[case] transport: TransportKind) {
             "fork_project",
             json!({
                 "project": project_path,
-                "name": fork_name
+                "name": fork_name,
+                "path": fork_name
             }),
         )
         .await
@@ -244,7 +263,10 @@ async fn test_list_project_members(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -277,7 +299,10 @@ async fn test_list_projects_pagination(#[case] transport: TransportKind) {
 
     let Some(ctx) = TestContext::new(transport)
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     // List with explicit page and per_page
     let result = ctx

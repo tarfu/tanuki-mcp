@@ -2,7 +2,7 @@
 //!
 //! Tests: search_global, search_project, search_group
 
-mod common;
+use crate::common;
 
 use rstest::rstest;
 use serde_json::json;
@@ -20,7 +20,10 @@ async fn test_search_global(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     // Wait for GitLab's search index to update
     tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
@@ -54,7 +57,10 @@ async fn test_search_project(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -107,7 +113,10 @@ async fn test_search_group(#[case] transport: TransportKind) {
     let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     // List groups first to get a valid group ID
     let groups = ctx
@@ -154,7 +163,10 @@ async fn test_search_global_issues(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -204,7 +216,10 @@ async fn test_search_project_commits(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 

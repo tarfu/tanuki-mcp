@@ -33,9 +33,10 @@ pub fn assert_tool_success(result: &Value) {
 }
 
 /// Create a unique name for test resources.
+/// Uses full 32-char UUID to avoid collisions across test runs.
 pub fn unique_name(prefix: &str) -> String {
     let uuid = uuid::Uuid::new_v4();
-    format!("{}-{}", prefix, &uuid.to_string()[..8])
+    format!("{}-{}", prefix, uuid.to_string().replace('-', ""))
 }
 
 /// Macro to generate test cases for both transports.

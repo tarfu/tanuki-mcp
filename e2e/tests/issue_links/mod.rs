@@ -2,7 +2,7 @@
 //!
 //! Tests: list_issue_links, create_issue_link, delete_issue_link
 
-mod common;
+use crate::common;
 
 use rstest::rstest;
 use serde_json::json;
@@ -40,7 +40,10 @@ async fn test_list_issue_links(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let issue_iid = create_test_issue(&ctx, &project_path, "Issue for links").await;
@@ -74,7 +77,10 @@ async fn test_create_issue_link(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -114,7 +120,10 @@ async fn test_delete_issue_link(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 

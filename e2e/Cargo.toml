@@ -41,3 +41,7 @@ tempfile = "3"
 
 # URL parsing
 url = "2"
+
+[[test]]
+name = "e2e"
+path = "tests/main.rs"

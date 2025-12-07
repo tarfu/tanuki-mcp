@@ -4,7 +4,7 @@
 //!        update_mr_draft_note, delete_mr_draft_note,
 //!        publish_mr_draft_note, publish_all_mr_draft_notes
 
-mod common;
+use crate::common;
 
 use rstest::rstest;
 use serde_json::json;
@@ -73,7 +73,10 @@ async fn test_list_mr_draft_notes(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("list-draft-branch");
@@ -126,7 +129,10 @@ async fn test_get_mr_draft_note(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("get-draft-branch");
@@ -184,7 +190,10 @@ async fn test_create_mr_draft_note(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("create-draft-branch");
@@ -227,7 +236,10 @@ async fn test_update_mr_draft_note(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("update-draft-branch");
@@ -289,7 +301,10 @@ async fn test_delete_mr_draft_note(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("delete-draft-branch");
@@ -350,7 +365,10 @@ async fn test_publish_mr_draft_note(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("publish-draft-branch");
@@ -411,7 +429,10 @@ async fn test_publish_all_mr_draft_notes(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let branch_name = common::unique_name("publish-all-branch");

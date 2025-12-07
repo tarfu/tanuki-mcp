@@ -1,251 +1,270 @@
-//! E2E tests for label tools.
+//! E2E tests for wiki tools.
 //!
-//! Tests: list_labels, get_label, create_label, update_label, delete_label
+//! Tests: list_wiki_pages, get_wiki_page, create_wiki_page, update_wiki_page, delete_wiki_page
 
-mod common;
+use crate::common;
 
 use rstest::rstest;
 use serde_json::json;
 use tanuki_mcp_e2e::{TestContextBuilder, TransportKind};
 
-/// Test listing labels.
+/// Test listing wiki pages.
 #[rstest]
 #[case::stdio(TransportKind::Stdio)]
 #[case::http(TransportKind::Http)]
 #[tokio::test]
-async fn test_list_labels(#[case] transport: TransportKind) {
+async fn test_list_wiki_pages(#[case] transport: TransportKind) {
     common::init_tracing();
 
     let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
-    let label_name = common::unique_name("list-label");
+    let page_title = common::unique_name("list-wiki");
 
-    // Create a label first
+    // Create a wiki page first
     let _ = ctx
         .client
         .call_tool_json(
-            "create_label",
+            "create_wiki_page",
             json!({
                 "project": project_path,
-                "name": label_name,
-                "color": "#FF0000"
+                "title": page_title,
+                "content": "Wiki page content"
             }),
         )
         .await
-        .expect("Failed to create label");
+        .expect("Failed to create wiki page");
 
     let result = ctx
         .client
-        .call_tool_json("list_labels", json!({ "project": project_path }))
+        .call_tool_json("list_wiki_pages", json!({ "project": project_path }))
         .await
-        .expect("Failed to list labels");
+        .expect("Failed to list wiki pages");
 
     assert!(result.is_array(), "Expected array, got: {:?}", result);
-    let labels = result.as_array().unwrap();
-    assert!(!labels.is_empty(), "Expected at least one label");
+    let pages = result.as_array().unwrap();
+    assert!(!pages.is_empty(), "Expected at least one wiki page");
 
     ctx.cleanup().await.expect("Cleanup failed");
 }
 
-/// Test getting a specific label.
+/// Test getting a specific wiki page.
 #[rstest]
 #[case::stdio(TransportKind::Stdio)]
 #[case::http(TransportKind::Http)]
 #[tokio::test]
-async fn test_get_label(#[case] transport: TransportKind) {
+async fn test_get_wiki_page(#[case] transport: TransportKind) {
     common::init_tracing();
 
     let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
-    let label_name = common::unique_name("get-label");
+    let page_title = common::unique_name("get-wiki");
 
-    let _ = ctx
+    let created = ctx
         .client
         .call_tool_json(
-            "create_label",
+            "create_wiki_page",
             json!({
                 "project": project_path,
-                "name": label_name,
-                "color": "#00FF00"
+                "title": page_title,
+                "content": "Content to get"
             }),
         )
         .await
-        .expect("Failed to create label");
+        .expect("Failed to create wiki page");
+
+    let slug = created
+        .get("slug")
+        .and_then(|v| v.as_str())
+        .expect("No slug");
 
     let result = ctx
         .client
         .call_tool_json(
-            "get_label",
+            "get_wiki_page",
             json!({
                 "project": project_path,
-                "label_id": label_name
+                "slug": slug
             }),
         )
         .await
-        .expect("Failed to get label");
+        .expect("Failed to get wiki page");
 
     assert!(result.is_object(), "Expected object, got: {:?}", result);
-    assert_eq!(
-        result.get("name").and_then(|v| v.as_str()),
-        Some(label_name.as_str())
-    );
+    assert_eq!(result.get("slug").and_then(|v| v.as_str()), Some(slug));
 
     ctx.cleanup().await.expect("Cleanup failed");
 }
 
-/// Test creating a label.
+/// Test creating a wiki page.
 #[rstest]
 #[case::stdio(TransportKind::Stdio)]
 #[case::http(TransportKind::Http)]
 #[tokio::test]
-async fn test_create_label(#[case] transport: TransportKind) {
+async fn test_create_wiki_page(#[case] transport: TransportKind) {
     common::init_tracing();
 
     let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
-    let label_name = common::unique_name("create-label");
+    let page_title = common::unique_name("create-wiki");
 
     let result = ctx
         .client
         .call_tool_json(
-            "create_label",
+            "create_wiki_page",
             json!({
                 "project": project_path,
-                "name": label_name,
-                "color": "#0000FF",
-                "description": "Test label description"
+                "title": page_title,
+                "content": "# New Wiki Page\n\nThis is the content."
             }),
         )
         .await
-        .expect("Failed to create label");
+        .expect("Failed to create wiki page");
 
     assert!(result.is_object(), "Expected object, got: {:?}", result);
+    // GitLab converts hyphens to spaces in title, so check slug instead
     assert_eq!(
-        result.get("name").and_then(|v| v.as_str()),
-        Some(label_name.as_str())
+        result.get("slug").and_then(|v| v.as_str()),
+        Some(page_title.as_str())
     );
-    assert_eq!(
-        result.get("color").and_then(|v| v.as_str()),
-        Some("#0000FF")
-    );
+    assert!(result.get("title").is_some(), "Expected title field");
 
     ctx.cleanup().await.expect("Cleanup failed");
 }
 
-/// Test updating a label.
+/// Test updating a wiki page.
 #[rstest]
 #[case::stdio(TransportKind::Stdio)]
 #[case::http(TransportKind::Http)]
 #[tokio::test]
-async fn test_update_label(#[case] transport: TransportKind) {
+async fn test_update_wiki_page(#[case] transport: TransportKind) {
     common::init_tracing();
 
     let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
-    let label_name = common::unique_name("update-label");
+    let page_title = common::unique_name("update-wiki");
 
-    let _ = ctx
+    let created = ctx
         .client
         .call_tool_json(
-            "create_label",
+            "create_wiki_page",
             json!({
                 "project": project_path,
-                "name": label_name,
-                "color": "#FFFF00"
+                "title": page_title,
+                "content": "Original content"
             }),
         )
         .await
-        .expect("Failed to create label");
+        .expect("Failed to create wiki page");
+
+    let slug = created
+        .get("slug")
+        .and_then(|v| v.as_str())
+        .expect("No slug");
 
     let result = ctx
         .client
         .call_tool_json(
-            "update_label",
+            "update_wiki_page",
             json!({
                 "project": project_path,
-                "label_id": label_name,
-                "new_name": "updated-label",
-                "color": "#FF00FF",
-                "description": "Updated description"
+                "slug": slug,
+                "title": "Updated Title",
+                "content": "Updated content"
             }),
         )
         .await
-        .expect("Failed to update label");
+        .expect("Failed to update wiki page");
 
     assert!(result.is_object(), "Expected object, got: {:?}", result);
     assert_eq!(
-        result.get("name").and_then(|v| v.as_str()),
-        Some("updated-label")
-    );
-    assert_eq!(
-        result.get("color").and_then(|v| v.as_str()),
-        Some("#FF00FF")
+        result.get("title").and_then(|v| v.as_str()),
+        Some("Updated Title")
     );
 
     ctx.cleanup().await.expect("Cleanup failed");
 }
 
-/// Test deleting a label.
+/// Test deleting a wiki page.
 #[rstest]
 #[case::stdio(TransportKind::Stdio)]
 #[case::http(TransportKind::Http)]
 #[tokio::test]
-async fn test_delete_label(#[case] transport: TransportKind) {
+async fn test_delete_wiki_page(#[case] transport: TransportKind) {
     common::init_tracing();
 
     let Some(ctx) = TestContextBuilder::new(transport)
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
-    let label_name = common::unique_name("delete-label");
+    let page_title = common::unique_name("delete-wiki");
 
-    let _ = ctx
+    let created = ctx
         .client
         .call_tool_json(
-            "create_label",
+            "create_wiki_page",
             json!({
                 "project": project_path,
-                "name": label_name,
-                "color": "#00FFFF"
+                "title": page_title,
+                "content": "Page to delete"
             }),
         )
         .await
-        .expect("Failed to create label");
+        .expect("Failed to create wiki page");
+
+    let slug = created
+        .get("slug")
+        .and_then(|v| v.as_str())
+        .expect("No slug");
 
     let result = ctx
         .client
         .call_tool(
-            "delete_label",
+            "delete_wiki_page",
             json!({
                 "project": project_path,
-                "label_id": label_name
+                "slug": slug
             }),
         )
         .await
-        .expect("Failed to delete label");
+        .expect("Failed to delete wiki page");
 
     assert!(
         result.is_error != Some(true),

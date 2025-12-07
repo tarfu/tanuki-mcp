@@ -3,7 +3,7 @@
 //! Tests: list_milestones, get_milestone, create_milestone, update_milestone,
 //!        delete_milestone, get_milestone_issues, get_milestone_merge_requests
 
-mod common;
+use crate::common;
 
 use rstest::rstest;
 use serde_json::json;
@@ -21,7 +21,10 @@ async fn test_list_milestones(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let milestone_title = common::unique_name("list-milestone");
@@ -64,7 +67,10 @@ async fn test_get_milestone(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let milestone_title = common::unique_name("get-milestone");
@@ -123,7 +129,10 @@ async fn test_create_milestone(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let milestone_title = common::unique_name("create-milestone");
@@ -163,7 +172,10 @@ async fn test_update_milestone(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let milestone_title = common::unique_name("update-milestone");
@@ -220,7 +232,10 @@ async fn test_delete_milestone(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let milestone_title = common::unique_name("delete-milestone");
@@ -275,7 +290,10 @@ async fn test_get_milestone_issues(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let milestone_title = common::unique_name("issues-milestone");
@@ -343,7 +361,10 @@ async fn test_get_milestone_merge_requests(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let milestone_title = common::unique_name("mr-milestone");

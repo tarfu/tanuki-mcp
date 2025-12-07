@@ -2,7 +2,7 @@
 //!
 //! Tests: list_issue_notes, get_issue_note, create_issue_note, update_issue_note, delete_issue_note
 
-mod common;
+use crate::common;
 
 use rstest::rstest;
 use serde_json::json;
@@ -40,7 +40,10 @@ async fn test_list_issue_notes(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let issue_iid = create_test_issue(&ctx, &project_path).await;
@@ -74,7 +77,10 @@ async fn test_create_issue_note(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let issue_iid = create_test_issue(&ctx, &project_path).await;
@@ -112,7 +118,10 @@ async fn test_get_issue_note(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let issue_iid = create_test_issue(&ctx, &project_path).await;
@@ -168,7 +177,10 @@ async fn test_update_issue_note(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let issue_iid = create_test_issue(&ctx, &project_path).await;
@@ -226,7 +238,10 @@ async fn test_delete_issue_note(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let issue_iid = create_test_issue(&ctx, &project_path).await;

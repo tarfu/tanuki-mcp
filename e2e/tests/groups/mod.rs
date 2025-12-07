@@ -4,7 +4,7 @@
 //!
 //! Note: Group creation requires admin permissions in GitLab CE.
 
-mod common;
+use crate::common;
 
 use rstest::rstest;
 use serde_json::json;
@@ -21,7 +21,10 @@ async fn test_list_groups(#[case] transport: TransportKind) {
     let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let result = ctx
         .client
@@ -47,7 +50,10 @@ async fn test_get_group(#[case] transport: TransportKind) {
     let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     // List groups first to get a valid group ID
     let groups = ctx
@@ -88,7 +94,10 @@ async fn test_list_group_members(#[case] transport: TransportKind) {
     let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let groups = ctx
         .client
@@ -126,7 +135,10 @@ async fn test_list_group_projects(#[case] transport: TransportKind) {
     let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let groups = ctx
         .client
@@ -164,7 +176,10 @@ async fn test_list_subgroups(#[case] transport: TransportKind) {
     let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let groups = ctx
         .client

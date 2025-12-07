@@ -3,7 +3,7 @@
 //! Tests: list_tags, get_tag, create_tag, delete_tag,
 //!        list_protected_tags, get_protected_tag, protect_tag, unprotect_tag
 
-mod common;
+use crate::common;
 
 use rstest::rstest;
 use serde_json::json;
@@ -21,7 +21,10 @@ async fn test_list_tags(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -65,7 +68,10 @@ async fn test_get_tag(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let tag_name = common::unique_name("get-tag");
@@ -117,7 +123,10 @@ async fn test_create_tag(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let tag_name = common::unique_name("create-tag");
@@ -157,7 +166,10 @@ async fn test_delete_tag(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let tag_name = common::unique_name("delete-tag");
@@ -210,7 +222,10 @@ async fn test_list_protected_tags(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -266,7 +281,10 @@ async fn test_get_protected_tag(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let tag_name = common::unique_name("get-protected-tag");
@@ -330,7 +348,10 @@ async fn test_protect_tag(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let tag_name = common::unique_name("protect-tag");
@@ -383,7 +404,10 @@ async fn test_unprotect_tag(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let tag_name = common::unique_name("unprotect-tag");

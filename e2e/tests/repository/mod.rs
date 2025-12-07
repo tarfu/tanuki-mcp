@@ -3,7 +3,7 @@
 //! Tests: get_repository_tree, get_repository_file, create_or_update_file,
 //!        delete_repository_file, get_file_blame
 
-mod common;
+use crate::common;
 
 use rstest::rstest;
 use serde_json::json;
@@ -21,7 +21,10 @@ async fn test_get_repository_tree(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -54,7 +57,10 @@ async fn test_create_file(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let file_path = format!("test-{}.txt", common::unique_name("file"));
@@ -93,7 +99,10 @@ async fn test_get_repository_file(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
@@ -148,7 +157,10 @@ async fn test_update_file(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let file_path = format!("test-{}.txt", common::unique_name("update"));
@@ -203,7 +215,10 @@ async fn test_delete_repository_file(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let file_path = format!("test-{}.txt", common::unique_name("delete"));
@@ -260,7 +275,10 @@ async fn test_get_file_blame(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
     let file_path = format!("test-{}.txt", common::unique_name("blame"));
@@ -316,7 +334,10 @@ async fn test_get_repository_tree_with_path(#[case] transport: TransportKind) {
         .with_project()
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 

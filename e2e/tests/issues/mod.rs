@@ -1,20 +1,19 @@
-//! E2E tests for branch tools.
+//! E2E tests for issue tools.
 //!
-//! Tests: list_branches, get_branch, create_branch, delete_branch,
-//!        protect_branch, unprotect_branch
+//! Tests: list_issues, get_issue, create_issue, update_issue, delete_issue
 
-mod common;
+use crate::common;
 
 use rstest::rstest;
 use serde_json::json;
 use tanuki_mcp_e2e::{TestContextBuilder, TransportKind};
 
-/// Test listing branches.
+/// Test listing issues in a project.
 #[rstest]
 #[case::stdio(TransportKind::Stdio)]
 #[case::http(TransportKind::Http)]
 #[tokio::test]
-async fn test_list_branches(#[case] transport: TransportKind) {
+async fn test_list_issues(#[case] transport: TransportKind) {
     common::init_tracing();
 
     let Some(ctx) = TestContextBuilder::new(transport)
@@ -23,31 +22,29 @@ async fn test_list_branches(#[case] transport: TransportKind) {
         .await
         .expect("Failed to create context")
     else {
-        return; // Transport not available, skip test
+        return;
     };
 
     let project_path = ctx.project_path.clone().expect("No project path");
 
     let result = ctx
         .client
-        .call_tool_json("list_branches", json!({ "project": project_path }))
+        .call_tool_json("list_issues", json!({ "project": project_path }))
         .await
-        .expect("Failed to list branches");
+        .expect("Failed to list issues");
 
+    // Result should be an array (may be empty initially)
     assert!(result.is_array(), "Expected array, got: {:?}", result);
-    let branches = result.as_array().unwrap();
-    // Project should have at least main/master branch
-    assert!(!branches.is_empty(), "Expected at least one branch");
 
     ctx.cleanup().await.expect("Cleanup failed");
 }
 
-/// Test getting a specific branch.
+/// Test creating an issue.
 #[rstest]
 #[case::stdio(TransportKind::Stdio)]
 #[case::http(TransportKind::Http)]
 #[tokio::test]
-async fn test_get_branch(#[case] transport: TransportKind) {
+async fn test_create_issue(#[case] transport: TransportKind) {
     common::init_tracing();
 
     let Some(ctx) = TestContextBuilder::new(transport)
@@ -56,77 +53,42 @@ async fn test_get_branch(#[case] transport: TransportKind) {
         .await
         .expect("Failed to create context")
     else {
-        return; // Transport not available, skip test
+        return;
     };
 
     let project_path = ctx.project_path.clone().expect("No project path");
+    let issue_title = common::unique_name("test-issue");
 
     let result = ctx
         .client
         .call_tool_json(
-            "get_branch",
+            "create_issue",
             json!({
                 "project": project_path,
-                "branch": "main"
+                "title": issue_title,
+                "description": "E2E test issue description"
             }),
         )
         .await
-        .expect("Failed to get branch");
+        .expect("Failed to create issue");
 
+    // Verify issue was created
     assert!(result.is_object(), "Expected object, got: {:?}", result);
-    assert_eq!(result.get("name").and_then(|v| v.as_str()), Some("main"));
-
-    ctx.cleanup().await.expect("Cleanup failed");
-}
-
-/// Test creating a branch.
-#[rstest]
-#[case::stdio(TransportKind::Stdio)]
-#[case::http(TransportKind::Http)]
-#[tokio::test]
-async fn test_create_branch(#[case] transport: TransportKind) {
-    common::init_tracing();
-
-    let Some(ctx) = TestContextBuilder::new(transport)
-        .with_project()
-        .build()
-        .await
-        .expect("Failed to create context")
-    else {
-        return; // Transport not available, skip test
-    };
-
-    let project_path = ctx.project_path.clone().expect("No project path");
-    let branch_name = common::unique_name("test-branch");
-
-    let result = ctx
-        .client
-        .call_tool_json(
-            "create_branch",
-            json!({
-                "project": project_path,
-                "branch": branch_name,
-                "ref_name": "main"
-            }),
-        )
-        .await
-        .expect("Failed to create branch");
-
-    assert!(result.is_object(), "Expected object, got: {:?}", result);
+    assert!(result.get("iid").is_some(), "Missing issue IID");
     assert_eq!(
-        result.get("name").and_then(|v| v.as_str()),
-        Some(branch_name.as_str())
+        result.get("title").and_then(|v| v.as_str()),
+        Some(issue_title.as_str())
     );
 
     ctx.cleanup().await.expect("Cleanup failed");
 }
 
-/// Test deleting a branch.
+/// Test getting a specific issue.
 #[rstest]
 #[case::stdio(TransportKind::Stdio)]
 #[case::http(TransportKind::Http)]
 #[tokio::test]
-async fn test_delete_branch(#[case] transport: TransportKind) {
+async fn test_get_issue(#[case] transport: TransportKind) {
     common::init_tracing();
 
     let Some(ctx) = TestContextBuilder::new(transport)
@@ -135,38 +97,159 @@ async fn test_delete_branch(#[case] transport: TransportKind) {
         .await
         .expect("Failed to create context")
     else {
-        return; // Transport not available, skip test
+        return;
     };
 
     let project_path = ctx.project_path.clone().expect("No project path");
-    let branch_name = common::unique_name("delete-branch");
 
-    // Create a branch to delete
-    let _ = ctx
+    // First create an issue
+    let create_result = ctx
         .client
         .call_tool_json(
-            "create_branch",
+            "create_issue",
             json!({
                 "project": project_path,
-                "branch": branch_name,
-                "ref_name": "main"
+                "title": "Test issue for get"
             }),
         )
         .await
-        .expect("Failed to create branch");
+        .expect("Failed to create issue");
 
-    // Delete the branch
+    let issue_iid = create_result
+        .get("iid")
+        .and_then(|v| v.as_u64())
+        .expect("No issue IID");
+
+    // Now get the issue
+    let result = ctx
+        .client
+        .call_tool_json(
+            "get_issue",
+            json!({
+                "project": project_path,
+                "issue_iid": issue_iid
+            }),
+        )
+        .await
+        .expect("Failed to get issue");
+
+    assert!(result.is_object(), "Expected object, got: {:?}", result);
+    assert_eq!(result.get("iid").and_then(|v| v.as_u64()), Some(issue_iid));
+
+    ctx.cleanup().await.expect("Cleanup failed");
+}
+
+/// Test updating an issue.
+#[rstest]
+#[case::stdio(TransportKind::Stdio)]
+#[case::http(TransportKind::Http)]
+#[tokio::test]
+async fn test_update_issue(#[case] transport: TransportKind) {
+    common::init_tracing();
+
+    let Some(ctx) = TestContextBuilder::new(transport)
+        .with_project()
+        .build()
+        .await
+        .expect("Failed to create context")
+    else {
+        return;
+    };
+
+    let project_path = ctx.project_path.clone().expect("No project path");
+
+    // First create an issue
+    let create_result = ctx
+        .client
+        .call_tool_json(
+            "create_issue",
+            json!({
+                "project": project_path,
+                "title": "Original title"
+            }),
+        )
+        .await
+        .expect("Failed to create issue");
+
+    let issue_iid = create_result
+        .get("iid")
+        .and_then(|v| v.as_u64())
+        .expect("No issue IID");
+
+    // Update the issue
+    let new_title = "Updated title";
+    let result = ctx
+        .client
+        .call_tool_json(
+            "update_issue",
+            json!({
+                "project": project_path,
+                "issue_iid": issue_iid,
+                "title": new_title,
+                "description": "Updated description"
+            }),
+        )
+        .await
+        .expect("Failed to update issue");
+
+    assert!(result.is_object(), "Expected object, got: {:?}", result);
+    assert_eq!(
+        result.get("title").and_then(|v| v.as_str()),
+        Some(new_title)
+    );
+
+    ctx.cleanup().await.expect("Cleanup failed");
+}
+
+/// Test deleting an issue.
+#[rstest]
+#[case::stdio(TransportKind::Stdio)]
+#[case::http(TransportKind::Http)]
+#[tokio::test]
+async fn test_delete_issue(#[case] transport: TransportKind) {
+    common::init_tracing();
+
+    let Some(ctx) = TestContextBuilder::new(transport)
+        .with_project()
+        .build()
+        .await
+        .expect("Failed to create context")
+    else {
+        return;
+    };
+
+    let project_path = ctx.project_path.clone().expect("No project path");
+
+    // First create an issue to delete
+    let create_result = ctx
+        .client
+        .call_tool_json(
+            "create_issue",
+            json!({
+                "project": project_path,
+                "title": "Issue to delete"
+            }),
+        )
+        .await
+        .expect("Failed to create issue");
+
+    let issue_iid = create_result
+        .get("iid")
+        .and_then(|v| v.as_u64())
+        .expect("No issue IID");
+
+    // Delete the issue
     let result = ctx
         .client
         .call_tool(
-            "delete_branch",
+            "delete_issue",
             json!({
                 "project": project_path,
-                "branch": branch_name
+                "issue_iid": issue_iid
             }),
         )
         .await
-        .expect("Failed to delete branch");
+        .expect("Failed to delete issue");
 
     assert!(
         result.is_error != Some(true),
@@ -177,12 +260,12 @@ async fn test_delete_branch(#[case] transport: TransportKind) {
     ctx.cleanup().await.expect("Cleanup failed");
 }
 
-/// Test protecting a branch.
+/// Test listing issues with filters.
 #[rstest]
 #[case::stdio(TransportKind::Stdio)]
 #[case::http(TransportKind::Http)]
 #[tokio::test]
-async fn test_protect_branch(#[case] transport: TransportKind) {
+async fn test_list_issues_with_filters(#[case] transport: TransportKind) {
     common::init_tracing();
 
     let Some(ctx) = TestContextBuilder::new(transport)
@@ -191,109 +274,40 @@ async fn test_protect_branch(#[case] transport: TransportKind) {
         .await
         .expect("Failed to create context")
     else {
-        return; // Transport not available, skip test
+        return;
     };
 
     let project_path = ctx.project_path.clone().expect("No project path");
-    let branch_name = common::unique_name("protect-branch");
 
-    // Create a branch to protect
+    // Create an issue first
     let _ = ctx
         .client
         .call_tool_json(
-            "create_branch",
+            "create_issue",
             json!({
                 "project": project_path,
-                "branch": branch_name,
-                "ref_name": "main"
+                "title": "Searchable issue"
             }),
         )
         .await
-        .expect("Failed to create branch");
+        .expect("Failed to create issue");
 
-    // Protect the branch
+    // List with state filter
     let result = ctx
         .client
         .call_tool_json(
-            "protect_branch",
+            "list_issues",
             json!({
                 "project": project_path,
-                "name": branch_name
+                "state": "opened"
             }),
         )
         .await
-        .expect("Failed to protect branch");
+        .expect("Failed to list issues");
 
-    assert!(result.is_object(), "Expected object, got: {:?}", result);
-    assert!(result.get("name").is_some());
-
-    ctx.cleanup().await.expect("Cleanup failed");
-}
-
-/// Test unprotecting a branch.
-#[rstest]
-#[case::stdio(TransportKind::Stdio)]
-#[case::http(TransportKind::Http)]
-#[tokio::test]
-async fn test_unprotect_branch(#[case] transport: TransportKind) {
-    common::init_tracing();
-
-    let Some(ctx) = TestContextBuilder::new(transport)
-        .with_project()
-        .build()
-        .await
-        .expect("Failed to create context")
-    else {
-        return; // Transport not available, skip test
-    };
-
-    let project_path = ctx.project_path.clone().expect("No project path");
-    let branch_name = common::unique_name("unprotect-branch");
-
-    // Create and protect a branch
-    let _ = ctx
-        .client
-        .call_tool_json(
-            "create_branch",
-            json!({
-                "project": project_path,
-                "branch": branch_name,
-                "ref_name": "main"
-            }),
-        )
-        .await
-        .expect("Failed to create branch");
-
-    let _ = ctx
-        .client
-        .call_tool_json(
-            "protect_branch",
-            json!({
-                "project": project_path,
-                "name": branch_name
-            }),
-        )
-        .await
-        .expect("Failed to protect branch");
-
-    // Unprotect the branch
-    let result = ctx
-        .client
-        .call_tool(
-            "unprotect_branch",
-            json!({
-                "project": project_path,
-                "name": branch_name
-            }),
-        )
-        .await
-        .expect("Failed to unprotect branch");
-
-    assert!(
-        result.is_error != Some(true),
-        "Unprotect returned error: {:?}",
-        result
-    );
+    assert!(result.is_array(), "Expected array, got: {:?}", result);
+    let issues = result.as_array().unwrap();
+    assert!(!issues.is_empty(), "Expected at least one open issue");
 
     ctx.cleanup().await.expect("Cleanup failed");
 }

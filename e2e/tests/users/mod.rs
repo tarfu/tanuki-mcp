@@ -2,7 +2,7 @@
 //!
 //! Tests: get_current_user, list_users, get_user, get_user_activities
 
-mod common;
+use crate::common;
 
 use rstest::rstest;
 use serde_json::json;
@@ -19,7 +19,10 @@ async fn test_get_current_user(#[case] transport: TransportKind) {
     let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let result = ctx
         .client
@@ -45,7 +48,10 @@ async fn test_list_users(#[case] transport: TransportKind) {
     let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let result = ctx
         .client
@@ -72,7 +78,10 @@ async fn test_get_user(#[case] transport: TransportKind) {
     let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     // Get current user first to get a valid user ID
     let current = ctx
@@ -109,11 +118,23 @@ async fn test_get_user_activities(#[case] transport: TransportKind) {
     let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
+
+    // Get current user to get a valid user_id
+    let user = ctx
+        .client
+        .call_tool_json("get_current_user", json!({}))
+        .await
+        .expect("Failed to get current user");
+
+    let user_id = user.get("id").and_then(|v| v.as_u64()).expect("No user id");
 
     let result = ctx
         .client
-        .call_tool_json("get_user_activities", json!({}))
+        .call_tool_json("get_user_activities", json!({ "user_id": user_id }))
         .await
         .expect("Failed to get user activities");
 

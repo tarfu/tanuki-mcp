@@ -283,6 +283,32 @@ impl ToolExecutor for GetReleaseEvidence {
     }
 }
 
+/// Collect release evidence
+#[gitlab_tool(
+    name = "collect_release_evidence",
+    description = "Trigger evidence collection for a release (Premium/Ultimate only)",
+    category = "releases",
+    operation = "write"
+)]
+pub struct CollectReleaseEvidence {
+    /// Project path or ID
+    pub project: String,
+    /// Release tag name
+    pub tag_name: String,
+}
+
+#[async_trait]
+impl ToolExecutor for CollectReleaseEvidence {
+    async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
+        let project = GitLabClient::encode_project(&self.project);
+        let tag_name = urlencoding::encode(&self.tag_name);
+        let endpoint = format!("/projects/{}/releases/{}/evidence", project, tag_name);
+
+        let result: serde_json::Value = ctx.gitlab.post(&endpoint, &serde_json::json!({})).await?;
+        ToolOutput::json_value(result)
+    }
+}
+
 /// Register all release tools
 pub fn register(registry: &mut crate::tools::ToolRegistry) {
     registry.register::<ListReleases>();
@@ -291,4 +317,5 @@ pub fn register(registry: &mut crate::tools::ToolRegistry) {
     registry.register::<UpdateRelease>();
     registry.register::<DeleteRelease>();
     registry.register::<GetReleaseEvidence>();
+    registry.register::<CollectReleaseEvidence>();
 }

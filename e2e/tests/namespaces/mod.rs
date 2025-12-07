@@ -2,7 +2,7 @@
 //!
 //! Tests: list_namespaces, get_namespace, namespace_exists
 
-mod common;
+use crate::common;
 
 use rstest::rstest;
 use serde_json::json;
@@ -19,7 +19,10 @@ async fn test_list_namespaces(#[case] transport: TransportKind) {
     let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let result = ctx
         .client
@@ -46,7 +49,10 @@ async fn test_get_namespace(#[case] transport: TransportKind) {
     let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     // List namespaces first to get a valid namespace ID
     let namespaces = ctx
@@ -67,7 +73,10 @@ async fn test_get_namespace(#[case] transport: TransportKind) {
 
     let result = ctx
         .client
-        .call_tool_json("get_namespace", json!({ "namespace_id": namespace_id }))
+        .call_tool_json(
+            "get_namespace",
+            json!({ "namespace": namespace_id.to_string() }),
+        )
         .await
         .expect("Failed to get namespace");
 
@@ -91,7 +100,10 @@ async fn test_namespace_exists(#[case] transport: TransportKind) {
     let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     // Get current user's namespace
     let user = ctx
@@ -108,7 +120,7 @@ async fn test_namespace_exists(#[case] transport: TransportKind) {
     // Check if user's namespace exists
     let result = ctx
         .client
-        .call_tool_json("namespace_exists", json!({ "namespace": username }))
+        .call_tool_json("namespace_exists", json!({ "path": username }))
         .await
         .expect("Failed to check namespace exists");
 
@@ -129,13 +141,16 @@ async fn test_namespace_not_exists(#[case] transport: TransportKind) {
     let Some(ctx) = TestContextBuilder::new(transport)
         .build()
         .await
-        .expect("Failed to create context") else { return; };
+        .expect("Failed to create context")
+    else {
+        return;
+    };
 
     let non_existent = common::unique_name("nonexistent-namespace");
 
     let result = ctx
         .client
-        .call_tool_json("namespace_exists", json!({ "namespace": non_existent }))
+        .call_tool_json("namespace_exists", json!({ "path": non_existent }))
         .await
         .expect("Failed to check namespace exists");
 

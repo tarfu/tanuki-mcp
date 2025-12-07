@@ -316,9 +316,7 @@ impl ToolExecutor for PublishMrDraftNote {
         );
 
         let empty_body = json!({});
-        ctx.gitlab
-            .put_no_content(&endpoint, &empty_body)
-            .await?;
+        ctx.gitlab.put_no_content(&endpoint, &empty_body).await?;
         ToolOutput::json_value(json!({"status": "published", "draft_note_id": self.draft_note_id}))
     }
 }
@@ -350,9 +348,7 @@ impl ToolExecutor for PublishAllMrDraftNotes {
         );
 
         let empty_body = json!({});
-        ctx.gitlab
-            .post_no_content(&endpoint, &empty_body)
-            .await?;
+        ctx.gitlab.post_no_content(&endpoint, &empty_body).await?;
         ToolOutput::json_value(json!({
             "status": "all_published",
             "merge_request_iid": self.merge_request_iid
