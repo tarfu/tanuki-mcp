@@ -22,8 +22,8 @@ pub const DEFAULT_GITLAB_PORT: u16 = 8080;
 /// GitLab container configuration.
 #[derive(Debug, Clone)]
 pub struct GitLabConfig {
-    /// The HTTP port GitLab listens on.
-    pub port: u16,
+    /// The base URL for GitLab (e.g., "http://localhost:8080").
+    pub base_url: String,
     /// The root password.
     pub root_password: String,
     /// Container name.
@@ -33,7 +33,7 @@ pub struct GitLabConfig {
 impl Default for GitLabConfig {
     fn default() -> Self {
         Self {
-            port: DEFAULT_GITLAB_PORT,
+            base_url: format!("http://localhost:{}", DEFAULT_GITLAB_PORT),
             root_password: DEFAULT_ROOT_PASSWORD.to_string(),
             container_name: "tanuki-mcp-e2e-gitlab".to_string(),
         }
@@ -42,29 +42,21 @@ impl Default for GitLabConfig {
 
 impl GitLabConfig {
     /// Create config from a URL string (for environment variable usage).
-    ///
-    /// Parses the URL to extract the port. Defaults to 8080 if no port specified.
     pub fn from_url(url: &str) -> Self {
-        let url = url.trim_end_matches('/');
-        let port = url::Url::parse(url)
-            .ok()
-            .and_then(|u| u.port())
-            .unwrap_or(DEFAULT_GITLAB_PORT);
-
         Self {
-            port,
+            base_url: url.trim_end_matches('/').to_string(),
             ..Default::default()
         }
     }
 
     /// Get the GitLab base URL.
     pub fn base_url(&self) -> String {
-        format!("http://localhost:{}", self.port)
+        self.base_url.clone()
     }
 
     /// Get the GitLab API URL.
     pub fn api_url(&self) -> String {
-        format!("{}/api/v4", self.base_url())
+        format!("{}/api/v4", self.base_url)
     }
 }
 
@@ -448,11 +440,12 @@ mod tests {
     }
 
     #[test]
-    fn test_custom_port() {
-        let config = GitLabConfig {
-            port: 9090,
-            ..Default::default()
-        };
+    fn test_from_url() {
+        let config = GitLabConfig::from_url("http://localhost:9090");
         assert_eq!(config.base_url(), "http://localhost:9090");
+
+        // Should trim trailing slash
+        let config = GitLabConfig::from_url("http://example.com:8080/");
+        assert_eq!(config.base_url(), "http://example.com:8080");
     }
 }
