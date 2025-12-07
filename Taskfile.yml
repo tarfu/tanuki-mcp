@@ -156,8 +156,8 @@ tasks:
         export GITLAB_TOKEN="$TOKEN"
         export RUST_TEST_THREADS="${RUST_TEST_THREADS:-1}"
 
-        echo "Running stdio-only tests (HTTP tests will be skipped)..."
-        cargo test -p tanuki-mcp-e2e {{.CLI_ARGS}}
+        echo "Running stdio-only tests (HTTP tests will be filtered out)..."
+        cargo test -p tanuki-mcp-e2e {{.CLI_ARGS}} -- --skip "case_2_http"
 
   e2e:gitlab:up:
     desc: Start GitLab CE container for E2E tests
