@@ -109,38 +109,29 @@ tasks:
         export GITLAB_TOKEN="$TOKEN"
         export RUST_TEST_THREADS="${RUST_TEST_THREADS:-1}"
 
-        # Create config file for MCP server
-        CONFIG_DIR=$(mktemp -d)
-        CONFIG_FILE="$CONFIG_DIR/config.toml"
-        cat > "$CONFIG_FILE" << EOF
-        [gitlab]
-        url = "http://localhost:8080"
-        token = "$TOKEN"
-
-        [access_control]
-        all = "Full"
-        EOF
-
         # Start MCP HTTP server in background
         echo "Starting MCP HTTP server on port 20399..."
-        TANUKI_MCP_CONFIG="$CONFIG_FILE" ./target/debug/tanuki-mcp --transport http --http-port 20399 &
+        ./target/debug/tanuki-mcp --transport http --http-port 20399 &
         MCP_PID=$!
 
         cleanup() {
           echo "Stopping MCP server..."
           kill $MCP_PID 2>/dev/null || true
-          rm -rf "$CONFIG_DIR"
         }
         trap cleanup EXIT
 
         # Wait for MCP server to be ready
         echo "Waiting for MCP server..."
+        sleep 1  # Give server time to initialize
         for i in $(seq 1 30); do
-          nc -z localhost 20399 2>/dev/null && break
-          kill -0 $MCP_PID 2>/dev/null || { echo "ERROR: MCP server failed to start"; exit 1; }
+          curl -sf http://127.0.0.1:20399/ >/dev/null 2>&1 && break
+          if ! kill -0 $MCP_PID 2>/dev/null; then
+            echo "ERROR: MCP server process died"
+            exit 1
+          fi
           sleep 0.5
         done
-        nc -z localhost 20399 2>/dev/null || { echo "ERROR: MCP server failed to start within timeout"; exit 1; }
+        curl -sf http://127.0.0.1:20399/ >/dev/null 2>&1 || { echo "ERROR: MCP server not responding after timeout"; exit 1; }
         echo "MCP server is ready"
 
         export MCP_HTTP_URL=http://127.0.0.1:20399/sse
