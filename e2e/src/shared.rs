@@ -107,8 +107,10 @@ impl SharedServers {
     async fn init() -> Result<Self> {
         tracing::info!("Initializing shared MCP servers...");
 
-        let gitlab = GitLabContainer::with_config(GitLabConfig::default());
-        let token = Self::get_or_create_token(&gitlab).await?;
+        let gitlab_url = Self::get_gitlab_url()?;
+        let token = Self::get_token()?;
+
+        let gitlab = GitLabContainer::with_config(GitLabConfig::from_url(&gitlab_url));
 
         // Create config directory and file
         let config_dir = TempDir::new().context("Failed to create temp directory")?;
@@ -152,39 +154,18 @@ impl SharedServers {
         &self.token
     }
 
-    /// Try to read shared PAT from file, or create a fresh one.
-    async fn get_or_create_token(gitlab: &GitLabContainer) -> Result<String> {
-        // Try shared token files first
-        for path in [".e2e-token", "../.e2e-token"] {
-            if let Ok(token) = std::fs::read_to_string(path) {
-                let token = token.trim().to_string();
-                if !token.is_empty() {
-                    tracing::debug!("Using shared PAT from {}", path);
-                    return Ok(token);
-                }
-            }
-        }
+    /// Get GitLab URL from environment variable.
+    fn get_gitlab_url() -> Result<String> {
+        std::env::var("GITLAB_URL").context(
+            "GITLAB_URL environment variable not set. Run tests via 'task e2e' or set GITLAB_URL manually.",
+        )
+    }
 
-        // Fall back to creating fresh PAT
-        tracing::info!("No shared PAT found, creating fresh one...");
-        gitlab
-            .wait_for_ready(Duration::from_secs(600))
-            .await
-            .context("GitLab not ready")?;
-
-        let token_name = format!(
-            "e2e-shared-{}",
-            uuid::Uuid::new_v4().to_string()[..8].to_string()
-        );
-        let token_value = format!(
-            "glpat-{}",
-            uuid::Uuid::new_v4().to_string().replace("-", "")
-        );
-
-        gitlab
-            .create_personal_access_token(&token_name, &token_value)
-            .await
-            .context("Failed to create PAT")
+    /// Get GitLab token from environment variable.
+    fn get_token() -> Result<String> {
+        std::env::var("GITLAB_TOKEN").context(
+            "GITLAB_TOKEN environment variable not set. Run tests via 'task e2e' or set GITLAB_TOKEN manually.",
+        )
     }
 
     /// Generate config file content.
@@ -235,8 +216,8 @@ pub struct SharedHttpClient {
 }
 
 impl SharedHttpClient {
-    /// Fixed port for shared HTTP server.
-    const SHARED_HTTP_PORT: u16 = 20299;
+    /// Fixed port for shared HTTP server (separate from production port 20289).
+    const SHARED_HTTP_PORT: u16 = 20399;
 
     /// Initialize the shared HTTP server.
     async fn init(binary_path: &PathBuf, config_path: &PathBuf) -> Result<Self> {

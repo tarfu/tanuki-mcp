@@ -41,6 +41,22 @@ impl Default for GitLabConfig {
 }
 
 impl GitLabConfig {
+    /// Create config from a URL string (for environment variable usage).
+    ///
+    /// Parses the URL to extract the port. Defaults to 8080 if no port specified.
+    pub fn from_url(url: &str) -> Self {
+        let url = url.trim_end_matches('/');
+        let port = url::Url::parse(url)
+            .ok()
+            .and_then(|u| u.port())
+            .unwrap_or(DEFAULT_GITLAB_PORT);
+
+        Self {
+            port,
+            ..Default::default()
+        }
+    }
+
     /// Get the GitLab base URL.
     pub fn base_url(&self) -> String {
         format!("http://localhost:{}", self.port)
