@@ -9,6 +9,7 @@ use std::collections::HashMap;
 /// Root configuration structure
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
+#[derive(Default)]
 pub struct AppConfig {
     /// GitLab connection settings
     pub gitlab: GitLabConfig,
@@ -24,18 +25,6 @@ pub struct AppConfig {
 
     /// Dashboard configuration
     pub dashboard: DashboardConfigToml,
-}
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            gitlab: GitLabConfig::default(),
-            server: ServerConfig::default(),
-            access_control: AccessControlConfig::default(),
-            logging: LoggingConfig::default(),
-            dashboard: DashboardConfigToml::default(),
-        }
-    }
 }
 
 /// Dashboard configuration (TOML format)
@@ -56,7 +45,7 @@ impl Default for DashboardConfigToml {
     fn default() -> Self {
         Self {
             enabled: true,
-            host: "127.0.0.1".to_string(),
+            host: "127.0.0.1".into(),
             port: 19892,
         }
     }
@@ -89,9 +78,9 @@ pub struct GitLabConfig {
 impl Default for GitLabConfig {
     fn default() -> Self {
         Self {
-            url: "https://gitlab.com".to_string(),
+            url: "https://gitlab.com".into(),
             token: None,
-            api_version: "v4".to_string(),
+            api_version: "v4".into(),
             timeout_secs: 30,
             max_retries: 3,
             verify_ssl: true,
@@ -134,10 +123,10 @@ impl Default for ServerConfig {
     fn default() -> Self {
         Self {
             transport: TransportMode::Stdio,
-            host: "127.0.0.1".to_string(),
+            host: "127.0.0.1".into(),
             port: 20289,
-            name: "tanuki-mcp".to_string(),
-            version: env!("CARGO_PKG_VERSION").to_string(),
+            name: "tanuki-mcp".into(),
+            version: env!("CARGO_PKG_VERSION").into(),
         }
     }
 }
@@ -259,6 +248,7 @@ pub enum ActionPermission {
 /// Inherits from global config but can override any setting
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
+#[derive(Default)]
 pub struct ProjectAccessConfig {
     /// Override base access level for this project
     #[serde(default)]
@@ -281,18 +271,6 @@ pub struct ProjectAccessConfig {
     pub actions: HashMap<String, ActionPermission>,
 }
 
-impl Default for ProjectAccessConfig {
-    fn default() -> Self {
-        Self {
-            all: None,
-            deny: Vec::new(),
-            allow: Vec::new(),
-            categories: HashMap::new(),
-            actions: HashMap::new(),
-        }
-    }
-}
-
 /// Logging configuration
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
@@ -307,7 +285,7 @@ pub struct LoggingConfig {
 impl Default for LoggingConfig {
     fn default() -> Self {
         Self {
-            level: "info".to_string(),
+            level: "info".into(),
             format: LogFormat::Pretty,
         }
     }

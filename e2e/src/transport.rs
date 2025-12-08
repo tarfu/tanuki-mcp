@@ -10,8 +10,8 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use rmcp::model::{CallToolRequestParam, CallToolResult, ListToolsResult};
 use rmcp::service::{Peer, RoleClient, RunningService, ServiceExt};
+use rmcp::transport::SseClientTransport;
 use rmcp::transport::child_process::TokioChildProcess;
-use rmcp::transport::sse::SseTransport;
 use serde_json::Value;
 use tokio::process::{Child, Command};
 use tokio::time::sleep;
@@ -58,7 +58,7 @@ impl McpClient {
         cmd.stderr(std::process::Stdio::inherit());
 
         let transport =
-            TokioChildProcess::new(&mut cmd).context("Failed to create child process transport")?;
+            TokioChildProcess::new(cmd).context("Failed to create child process transport")?;
 
         let running_service =
             ().serve(transport)
@@ -95,7 +95,7 @@ impl McpClient {
         Self::wait_for_server(&sse_url, Duration::from_secs(30)).await?;
 
         // Connect via SSE
-        let transport = SseTransport::start(&sse_url)
+        let transport = SseClientTransport::start(sse_url)
             .await
             .context("Failed to create SSE transport")?;
 

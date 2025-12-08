@@ -1,11 +1,11 @@
 //! Issue notes (comments) tools
 
-use async_trait::async_trait;
 use serde_json::json;
 use tanuki_mcp_macros::gitlab_tool;
 
 use crate::error::ToolError;
 use crate::tools::{ToolContext, ToolExecutor, ToolOutput, ToolRegistry};
+use async_trait::async_trait;
 
 // ============================================================================
 // List Issue Notes

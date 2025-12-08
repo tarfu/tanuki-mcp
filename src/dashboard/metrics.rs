@@ -6,8 +6,8 @@
 use crate::access_control::ToolCategory;
 use serde::Serialize;
 use std::collections::HashMap;
-use std::sync::RwLock;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::time::{Duration, Instant, SystemTime};
 
 /// Dashboard metrics collector
@@ -143,6 +143,69 @@ impl DashboardMetrics {
         }
     }
 
+    // Helper methods for safe lock access with poison recovery
+    // These recover from poisoned locks by logging a warning and continuing with the data
+
+    fn write_tool_stats(&self) -> RwLockWriteGuard<'_, HashMap<String, ToolStatsInner>> {
+        self.tool_stats.write().unwrap_or_else(|poisoned| {
+            tracing::warn!("tool_stats lock poisoned, recovering");
+            poisoned.into_inner()
+        })
+    }
+
+    fn read_tool_stats(&self) -> RwLockReadGuard<'_, HashMap<String, ToolStatsInner>> {
+        self.tool_stats.read().unwrap_or_else(|poisoned| {
+            tracing::warn!("tool_stats lock poisoned, recovering");
+            poisoned.into_inner()
+        })
+    }
+
+    fn write_category_stats(
+        &self,
+    ) -> RwLockWriteGuard<'_, HashMap<ToolCategory, CategoryStatsInner>> {
+        self.category_stats.write().unwrap_or_else(|poisoned| {
+            tracing::warn!("category_stats lock poisoned, recovering");
+            poisoned.into_inner()
+        })
+    }
+
+    fn read_category_stats(
+        &self,
+    ) -> RwLockReadGuard<'_, HashMap<ToolCategory, CategoryStatsInner>> {
+        self.category_stats.read().unwrap_or_else(|poisoned| {
+            tracing::warn!("category_stats lock poisoned, recovering");
+            poisoned.into_inner()
+        })
+    }
+
+    fn write_project_stats(&self) -> RwLockWriteGuard<'_, HashMap<String, ProjectStatsInner>> {
+        self.project_stats.write().unwrap_or_else(|poisoned| {
+            tracing::warn!("project_stats lock poisoned, recovering");
+            poisoned.into_inner()
+        })
+    }
+
+    fn read_project_stats(&self) -> RwLockReadGuard<'_, HashMap<String, ProjectStatsInner>> {
+        self.project_stats.read().unwrap_or_else(|poisoned| {
+            tracing::warn!("project_stats lock poisoned, recovering");
+            poisoned.into_inner()
+        })
+    }
+
+    fn write_recent_requests(&self) -> RwLockWriteGuard<'_, Vec<RequestRecord>> {
+        self.recent_requests.write().unwrap_or_else(|poisoned| {
+            tracing::warn!("recent_requests lock poisoned, recovering");
+            poisoned.into_inner()
+        })
+    }
+
+    fn read_recent_requests(&self) -> RwLockReadGuard<'_, Vec<RequestRecord>> {
+        self.recent_requests.read().unwrap_or_else(|poisoned| {
+            tracing::warn!("recent_requests lock poisoned, recovering");
+            poisoned.into_inner()
+        })
+    }
+
     /// Record a tool call
     pub fn record_call(
         &self,
@@ -167,7 +230,7 @@ impl DashboardMetrics {
 
         // Update tool stats
         {
-            let mut stats = self.tool_stats.write().unwrap();
+            let mut stats = self.write_tool_stats();
             let entry = stats.entry(tool_name.to_string()).or_default();
             entry.call_count += 1;
             if !success {
@@ -179,7 +242,7 @@ impl DashboardMetrics {
 
         // Update category stats
         {
-            let mut stats = self.category_stats.write().unwrap();
+            let mut stats = self.write_category_stats();
             let entry = stats.entry(category).or_default();
             entry.call_count += 1;
             if !success {
@@ -189,7 +252,7 @@ impl DashboardMetrics {
 
         // Update project stats if applicable
         if let Some(proj) = project {
-            let mut stats = self.project_stats.write().unwrap();
+            let mut stats = self.write_project_stats();
             let entry = stats.entry(proj.to_string()).or_default();
             entry.access_count += 1;
             *entry.tools_used.entry(tool_name.to_string()).or_default() += 1;
@@ -198,7 +261,7 @@ impl DashboardMetrics {
 
         // Record recent request
         {
-            let mut recent = self.recent_requests.write().unwrap();
+            let mut recent = self.write_recent_requests();
             if recent.len() >= self.max_recent_requests {
                 recent.remove(0);
             }
@@ -227,7 +290,7 @@ impl DashboardMetrics {
 
         // Get tool stats
         let tools: Vec<ToolStats> = {
-            let stats = self.tool_stats.read().unwrap();
+            let stats = self.read_tool_stats();
             let mut tools: Vec<_> = stats
                 .iter()
                 .map(|(name, s)| ToolStats {
@@ -252,7 +315,7 @@ impl DashboardMetrics {
 
         // Get project stats
         let projects: Vec<ProjectStats> = {
-            let stats = self.project_stats.read().unwrap();
+            let stats = self.read_project_stats();
             let mut projects: Vec<_> = stats
                 .iter()
                 .map(|(name, s)| {
@@ -284,7 +347,7 @@ impl DashboardMetrics {
 
         // Get category stats
         let categories: Vec<CategoryStats> = {
-            let stats = self.category_stats.read().unwrap();
+            let stats = self.read_category_stats();
             let mut categories: Vec<_> = stats
                 .iter()
                 .map(|(cat, s)| CategoryStats {
@@ -298,7 +361,7 @@ impl DashboardMetrics {
         };
 
         // Get recent requests
-        let recent_requests = self.recent_requests.read().unwrap().clone();
+        let recent_requests = self.read_recent_requests().clone();
 
         let start_time = self
             .start_system_time

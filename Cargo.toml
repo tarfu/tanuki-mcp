@@ -22,6 +22,7 @@ rmcp = { version = "0.10", features = ["server", "transport-io", "transport-sse-
 tokio = { version = "1", features = ["full", "macros", "rt-multi-thread"] }
 tokio-util = "0.7"
 futures = "0.3"
+# async_trait needed for dyn-compatible async traits (AuthProvider, ToolHandler)
 async-trait = "0.1"
 
 # HTTP client for GitLab API

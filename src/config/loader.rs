@@ -57,7 +57,7 @@ pub fn load_config(config_path: Option<&str>) -> Result<AppConfig, ConfigError> 
         for path in DEFAULT_CONFIG_PATHS {
             let expanded = shellexpand::tilde(path);
             if Path::new(expanded.as_ref()).exists() {
-                builder = builder.add_source(File::new(&*expanded, FileFormat::Toml));
+                builder = builder.add_source(File::new(&expanded, FileFormat::Toml));
                 break;
             }
         }

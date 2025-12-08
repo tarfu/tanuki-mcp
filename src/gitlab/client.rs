@@ -83,7 +83,7 @@ impl GitLabClient {
                     last_error = Some(GitLabError::Request(e));
 
                     // Only retry on connection/timeout errors
-                    if !is_retryable(&last_error.as_ref().unwrap()) {
+                    if !is_retryable(last_error.as_ref().unwrap()) {
                         break;
                     }
                 }

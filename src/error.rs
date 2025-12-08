@@ -81,10 +81,10 @@ impl GitLabError {
         match status {
             401 => GitLabError::Unauthorized,
             403 => GitLabError::Forbidden {
-                action: "this operation".to_string(),
+                action: "this operation".into(),
             },
             404 => GitLabError::NotFound {
-                resource: "requested resource".to_string(),
+                resource: "requested resource".into(),
             },
             429 => {
                 // Try to parse retry-after from body, default to 60
@@ -121,7 +121,7 @@ impl AccessDeniedError {
     pub fn read_only(tool: impl Into<String>) -> Self {
         Self {
             tool: tool.into(),
-            reason: "write operations are not permitted in read-only mode".to_string(),
+            reason: "write operations are not permitted in read-only mode".into(),
         }
     }
 
@@ -164,7 +164,7 @@ impl AccessDeniedError {
     pub fn globally_unavailable(tool: impl Into<String>) -> Self {
         Self {
             tool: tool.into(),
-            reason: "this tool is not available".to_string(),
+            reason: "this tool is not available".into(),
         }
     }
 }

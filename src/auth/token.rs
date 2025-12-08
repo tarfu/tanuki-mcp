@@ -37,10 +37,10 @@ impl PatProvider {
             "GITLAB_PRIVATE_TOKEN",
             "GITLAB_ACCESS_TOKEN",
         ] {
-            if let Ok(token) = std::env::var(var) {
-                if !token.is_empty() {
-                    return Self::new(token);
-                }
+            if let Ok(token) = std::env::var(var)
+                && !token.is_empty()
+            {
+                return Self::new(token);
             }
         }
 

@@ -151,19 +151,17 @@ impl AccessResolver {
         );
 
         // 1. Check project-specific action override
-        if let Some(proj_name) = project {
-            if let Some(proj_config) = self.projects.get(proj_name) {
-                if let Some(permission) = proj_config.actions.get(tool_name) {
-                    trace!("Matched project action override");
-                    return match permission {
-                        ActionPermission::Allow => AccessDecision::Allowed,
-                        ActionPermission::Deny => AccessDecision::Denied(format!(
-                            "Explicitly denied for project '{}'",
-                            proj_name
-                        )),
-                    };
+        if let Some(proj_name) = project
+            && let Some(proj_config) = self.projects.get(proj_name)
+            && let Some(permission) = proj_config.actions.get(tool_name)
+        {
+            trace!("Matched project action override");
+            return match permission {
+                ActionPermission::Allow => AccessDecision::Allowed,
+                ActionPermission::Deny => {
+                    AccessDecision::Denied(format!("Explicitly denied for project '{}'", proj_name))
                 }
-            }
+            };
         }
 
         // 2. Check global action override
@@ -178,49 +176,41 @@ impl AccessResolver {
         }
 
         // 3. Check project-specific category
-        if let Some(proj_name) = project {
-            if let Some(proj_config) = self.projects.get(proj_name) {
-                if let Some(cat_config) = proj_config.categories.get(&category) {
-                    if let Some(decision) =
-                        self.check_level_and_patterns(tool_name, operation, cat_config)
-                    {
-                        trace!("Matched project category config");
-                        return decision;
-                    }
-                }
-            }
+        if let Some(proj_name) = project
+            && let Some(proj_config) = self.projects.get(proj_name)
+            && let Some(cat_config) = proj_config.categories.get(&category)
+            && let Some(decision) = self.check_level_and_patterns(tool_name, operation, cat_config)
+        {
+            trace!("Matched project category config");
+            return decision;
         }
 
         // 4. Check global category
-        if let Some(cat_config) = self.categories.get(&category) {
-            if let Some(decision) = self.check_level_and_patterns(tool_name, operation, cat_config)
-            {
-                trace!("Matched global category config");
-                return decision;
-            }
+        if let Some(cat_config) = self.categories.get(&category)
+            && let Some(decision) = self.check_level_and_patterns(tool_name, operation, cat_config)
+        {
+            trace!("Matched global category config");
+            return decision;
         }
 
         // 5. Check project-specific base
-        if let Some(proj_name) = project {
-            if let Some(proj_config) = self.projects.get(proj_name) {
-                // Check project patterns first
-                if let Some(pattern) = proj_config.allow.find_match(tool_name) {
-                    trace!("Matched project allow pattern: {}", pattern);
-                    return AccessDecision::Allowed;
-                }
-                if let Some(pattern) = proj_config.deny.find_match(tool_name) {
-                    trace!("Matched project deny pattern: {}", pattern);
-                    return AccessDecision::Denied(format!(
-                        "Denied by project pattern '{}'",
-                        pattern
-                    ));
-                }
+        if let Some(proj_name) = project
+            && let Some(proj_config) = self.projects.get(proj_name)
+        {
+            // Check project patterns first
+            if let Some(pattern) = proj_config.allow.find_match(tool_name) {
+                trace!("Matched project allow pattern: {}", pattern);
+                return AccessDecision::Allowed;
+            }
+            if let Some(pattern) = proj_config.deny.find_match(tool_name) {
+                trace!("Matched project deny pattern: {}", pattern);
+                return AccessDecision::Denied(format!("Denied by project pattern '{}'", pattern));
+            }
 
-                // Check project base level
-                if let Some(level) = proj_config.base_level {
-                    trace!("Using project base level: {:?}", level);
-                    return self.check_access_level(level, operation);
-                }
+            // Check project base level
+            if let Some(level) = proj_config.base_level {
+                trace!("Using project base level: {:?}", level);
+                return self.check_access_level(level, operation);
             }
         }
 
@@ -339,13 +329,12 @@ impl AccessResolver {
                     return false;
                 }
                 // Check if category level would allow
-                if cat_config.level != AccessLevel::None {
-                    if self
+                if cat_config.level != AccessLevel::None
+                    && self
                         .check_access_level(cat_config.level, operation)
                         .is_allowed()
-                    {
-                        return false;
-                    }
+                {
+                    return false;
                 }
             }
 
@@ -355,10 +344,10 @@ impl AccessResolver {
             }
 
             // Check project base level
-            if let Some(level) = proj_config.base_level {
-                if self.check_access_level(level, operation).is_allowed() {
-                    return false;
-                }
+            if let Some(level) = proj_config.base_level
+                && self.check_access_level(level, operation).is_allowed()
+            {
+                return false;
             }
         }
 

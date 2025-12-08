@@ -7,6 +7,7 @@ use crate::error::ToolError;
 use crate::gitlab::GitLabClient;
 use crate::tools::{ToolContext, ToolExecutor, ToolInfo, ToolOutput, ToolRegistry};
 use async_trait::async_trait;
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

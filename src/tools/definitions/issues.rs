@@ -7,6 +7,7 @@ use crate::error::ToolError;
 use crate::gitlab::GitLabClient;
 use crate::tools::{ToolContext, ToolExecutor, ToolInfo, ToolOutput, ToolRegistry};
 use async_trait::async_trait;
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -465,7 +466,7 @@ impl ToolExecutor for DeleteIssue {
         let endpoint = format!("/projects/{}/issues/{}", project, self.issue_iid);
 
         ctx.gitlab.delete(&endpoint).await?;
-        ToolOutput::json(&serde_json::json!({
+        ToolOutput::json(serde_json::json!({
             "success": true,
             "message": format!("Issue #{} deleted", self.issue_iid)
         }))

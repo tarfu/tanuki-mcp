@@ -7,12 +7,11 @@ description = "End-to-end tests for tanuki-mcp"
 
 [dependencies]
 # MCP SDK - client features for testing
-# Using same version as main crate (0.1.5) for compatibility
-rmcp = { version = "0.1", features = ["client", "transport-child-process", "transport-sse"] }
+# Using same version as main crate for compatibility
+rmcp = { version = "0.10", features = ["client", "transport-child-process", "transport-sse-client-reqwest"] }
 
 # Async runtime
 tokio = { version = "1", features = ["full", "process", "test-util"] }
-async-trait = "0.1"
 
 # HTTP client for GitLab health checks
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

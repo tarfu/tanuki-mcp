@@ -53,7 +53,6 @@ struct GitLabToolArgs {
 ///     pub description: Option<String>,
 /// }
 ///
-/// #[async_trait]
 /// impl ToolExecutor for CreateIssue {
 ///     async fn execute(&self, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
 ///         // Your implementation here

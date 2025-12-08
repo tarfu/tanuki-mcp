@@ -4,6 +4,7 @@
 //! Personal Access Tokens and can be extended for OAuth2 in the future.
 
 use crate::error::AuthError;
+// async_trait required for dyn-compatibility with Box<dyn AuthProvider>
 use async_trait::async_trait;
 
 /// Authentication provider trait

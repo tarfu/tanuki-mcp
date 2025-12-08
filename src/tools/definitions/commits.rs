@@ -6,6 +6,7 @@ use crate::error::ToolError;
 use crate::gitlab::GitLabClient;
 use crate::tools::executor::{ToolContext, ToolExecutor, ToolOutput};
 use async_trait::async_trait;
+
 use tanuki_mcp_macros::gitlab_tool;
 
 /// List commits in a repository

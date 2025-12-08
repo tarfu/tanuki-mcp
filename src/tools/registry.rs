@@ -6,6 +6,7 @@ use crate::access_control::{AccessControlled, AccessDecision, OperationType, Too
 use crate::error::{AccessDeniedError, ToolError};
 use crate::tools::executor::ToolInfo;
 use crate::tools::executor::{ToolContext, ToolExecutor, ToolOutput};
+// async_trait required for dyn-compatibility with Box<dyn ToolHandler>
 use async_trait::async_trait;
 use schemars::Schema;
 use serde::de::DeserializeOwned;

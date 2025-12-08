@@ -61,8 +61,7 @@ impl AccessControlTestClient {
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::inherit());
 
-        let transport =
-            TokioChildProcess::new(&mut cmd).context("Failed to create child process")?;
+        let transport = TokioChildProcess::new(cmd).context("Failed to create child process")?;
 
         let running_service =
             ().serve(transport)

@@ -6,6 +6,7 @@ use crate::error::ToolError;
 use crate::gitlab::GitLabClient;
 use crate::tools::executor::{ToolContext, ToolExecutor, ToolOutput};
 use async_trait::async_trait;
+
 use base64::Engine;
 use tanuki_mcp_macros::gitlab_tool;
 
@@ -43,19 +44,16 @@ impl ToolExecutor for GetRepositoryFile {
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
 
         // Decode base64 content if present
-        if let Some(content) = result.get("content").and_then(|c| c.as_str()) {
-            if let Some(encoding) = result.get("encoding").and_then(|e| e.as_str()) {
-                if encoding == "base64" {
-                    if let Ok(decoded) = base64::engine::general_purpose::STANDARD.decode(content) {
-                        if let Ok(text) = String::from_utf8(decoded) {
-                            let mut output = result.clone();
-                            output["content"] = serde_json::Value::String(text);
-                            output["encoding"] = serde_json::Value::String("text".to_string());
-                            return ToolOutput::json_value(output);
-                        }
-                    }
-                }
-            }
+        if let Some(content) = result.get("content").and_then(|c| c.as_str())
+            && let Some(encoding) = result.get("encoding").and_then(|e| e.as_str())
+            && encoding == "base64"
+            && let Ok(decoded) = base64::engine::general_purpose::STANDARD.decode(content)
+            && let Ok(text) = String::from_utf8(decoded)
+        {
+            let mut output = result.clone();
+            output["content"] = serde_json::Value::String(text);
+            output["encoding"] = serde_json::Value::String("text".to_string());
+            return ToolOutput::json_value(output);
         }
 
         ToolOutput::json_value(result)

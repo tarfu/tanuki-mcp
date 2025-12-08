@@ -19,8 +19,8 @@ use std::sync::OnceLock;
 use anyhow::{Context, Result};
 use rmcp::model::{CallToolRequestParam, CallToolResult, ListToolsResult};
 use rmcp::service::{Peer, RoleClient, ServiceExt};
+use rmcp::transport::SseClientTransport;
 use rmcp::transport::child_process::TokioChildProcess;
-use rmcp::transport::sse::SseTransport;
 use serde_json::Value;
 use tempfile::TempDir;
 use tokio::process::Command;
@@ -238,7 +238,7 @@ impl SharedHttpClient {
     ///
     /// The URL should be the SSE endpoint (e.g., `http://127.0.0.1:20399/sse`).
     async fn connect(url: &str) -> Result<Self> {
-        let transport = SseTransport::start(url).await.with_context(|| {
+        let transport = SseClientTransport::start(url).await.with_context(|| {
             format!(
                 "Failed to connect to MCP server at {}. Is the server running?",
                 url
@@ -288,7 +288,7 @@ impl SharedStdioClient {
             .stderr(std::process::Stdio::inherit());
 
         let transport =
-            TokioChildProcess::new(&mut cmd).context("Failed to create child process transport")?;
+            TokioChildProcess::new(cmd).context("Failed to create child process transport")?;
 
         let running_service =
             ().serve(transport)

@@ -6,6 +6,7 @@ use crate::access_control::AccessResolver;
 use crate::dashboard::DashboardMetrics;
 use crate::error::ToolError;
 use crate::gitlab::GitLabClient;
+// async_trait required for Send guarantee when used in async contexts
 use async_trait::async_trait;
 use serde_json::Value;
 use std::sync::Arc;
