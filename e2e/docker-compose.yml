@@ -100,12 +100,11 @@ services:
       ]
     environment:
       - GITLAB_URL=http://gitlab:80
-      - GITLAB_TOKEN=${GITLAB_TOKEN}
+      - GITLAB_TOKEN=${GITLAB_TOKEN:-}
     ports:
       - "20399:20289"
-    depends_on:
-      gitlab:
-        condition: service_healthy
+    # Note: depends_on removed because gitlab is in a different profile.
+    # The Taskfile manages the startup order: infra profile first, then mcp profile.
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:20289/health"]
       interval: 5s

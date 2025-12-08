@@ -16,7 +16,8 @@ async fn wait_for_mr_ready(
     project_path: &str,
     mr_iid: i64,
 ) -> serde_json::Value {
-    for _ in 0..10 {
+    // Increased from 10 to 20 iterations to handle slower stdio transport
+    for _ in 0..20 {
         let mr = ctx
             .client
             .call_tool_json(
