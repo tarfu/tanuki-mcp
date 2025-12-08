@@ -65,6 +65,7 @@
 
 mod common;
 
+mod access_control;
 mod branches;
 mod commits;
 mod groups;

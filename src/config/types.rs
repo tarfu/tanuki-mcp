@@ -193,7 +193,7 @@ pub struct AccessControlConfig {
 impl Default for AccessControlConfig {
     fn default() -> Self {
         Self {
-            all: AccessLevel::None,
+            all: AccessLevel::Full,
             deny: Vec::new(),
             allow: Vec::new(),
             categories: HashMap::new(),
@@ -352,7 +352,7 @@ mod tests {
         assert_eq!(config.gitlab.url, "https://gitlab.com");
         assert_eq!(config.gitlab.timeout_secs, 30);
         assert_eq!(config.server.transport, TransportMode::Stdio);
-        assert_eq!(config.access_control.all, AccessLevel::None);
+        assert_eq!(config.access_control.all, AccessLevel::Full);
     }
 
     #[test]

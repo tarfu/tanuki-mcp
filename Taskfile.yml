@@ -111,11 +111,11 @@ tasks:
 
         # Start MCP HTTP server in Docker container
         echo "Starting MCP HTTP server container..."
-        docker compose -f e2e/docker-compose.yml up -d --build tanuki-mcp
+        docker compose -f e2e/docker-compose.yml --profile mcp up -d --build
 
         cleanup() {
           echo "Stopping MCP server container..."
-          docker compose -f e2e/docker-compose.yml stop tanuki-mcp
+          docker compose -f e2e/docker-compose.yml --profile mcp stop
         }
         trap cleanup EXIT
 
@@ -125,7 +125,7 @@ tasks:
           curl -sf http://localhost:20399/health >/dev/null 2>&1 && break
           sleep 1
         done
-        curl -sf http://localhost:20399/health >/dev/null 2>&1 || { echo "ERROR: MCP server health check failed after 30s"; docker compose -f e2e/docker-compose.yml logs tanuki-mcp; exit 1; }
+        curl -sf http://localhost:20399/health >/dev/null 2>&1 || { echo "ERROR: MCP server health check failed after 30s"; docker compose -f e2e/docker-compose.yml --profile mcp logs; exit 1; }
         echo "MCP server is ready"
 
         export MCP_HTTP_URL=http://localhost:20399/sse
@@ -147,14 +147,14 @@ tasks:
   e2e:gitlab:up:
     desc: Start GitLab CE container for E2E tests
     cmds:
-      - docker compose -f e2e/docker-compose.yml up -d gitlab gitlab-runner
+      - docker compose -f e2e/docker-compose.yml --profile infra up -d
     status:
       - docker inspect tanuki-mcp-e2e-gitlab --format '{{.State.Running}}' 2>/dev/null | grep -q true
 
   e2e:gitlab:down:
     desc: Stop GitLab CE container
     cmds:
-      - docker compose -f e2e/docker-compose.yml down -v
+      - docker compose -f e2e/docker-compose.yml --profile infra --profile mcp down -v
 
   e2e:gitlab:logs:
     desc: Show GitLab container logs
@@ -164,7 +164,7 @@ tasks:
   e2e:mcp:logs:
     desc: Show MCP server container logs
     cmds:
-      - docker compose -f e2e/docker-compose.yml logs -f tanuki-mcp
+      - docker compose -f e2e/docker-compose.yml --profile mcp logs -f
 
   e2e:wait:
     desc: Wait for GitLab to be ready (may take 3-5 minutes)

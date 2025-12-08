@@ -194,7 +194,7 @@ url = "{gitlab_url}"
 token = "{token}"
 
 [access_control]
-all = "Full"
+all = "full"
 "#,
             gitlab_url = gitlab_url,
             token = token

@@ -3580,12 +3580,12 @@ mod error_handling {
     }
 
     #[test]
-    fn test_default_config_is_none() {
-        // Default AccessControlConfig has all = None
-        let config = AccessControlConfig::default();
+    fn test_none_level_denies_all() {
+        // AccessLevel::None denies all operations
+        let config = config_with_level(AccessLevel::None);
         let resolver = AccessResolver::new(&config).unwrap();
 
-        // Default is None, so everything should be denied
+        // None level means everything should be denied
         assert!(
             resolver
                 .check(
@@ -3695,9 +3695,9 @@ mod edge_cases {
     use super::*;
 
     #[test]
-    fn test_default_config_denies_all() {
-        // AccessControlConfig::default() has all = None
-        let config = AccessControlConfig::default();
+    fn test_none_level_config_denies_all() {
+        // AccessLevel::None denies all operations
+        let config = config_with_level(AccessLevel::None);
         let resolver = AccessResolver::new(&config).unwrap();
 
         assert!(

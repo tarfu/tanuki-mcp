@@ -9,6 +9,7 @@
 
 services:
   gitlab:
+    profiles: ["infra"]
     image: gitlab/gitlab-ce:latest
     container_name: tanuki-mcp-e2e-gitlab
     hostname: gitlab.local
@@ -68,6 +69,7 @@ services:
       start_period: 300s
 
   gitlab-runner:
+    profiles: ["infra"]
     image: gitlab/gitlab-runner:latest
     container_name: tanuki-mcp-e2e-gitlab-runner
     hostname: gitlab-runner
@@ -79,6 +81,7 @@ services:
       - gitlab-runner-config:/etc/gitlab-runner
 
   tanuki-mcp:
+    profiles: ["mcp"]
     build:
       context: ..
       dockerfile: Dockerfile
