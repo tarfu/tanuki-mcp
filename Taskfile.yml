@@ -100,7 +100,7 @@ tasks:
           FILTER: http
 
   e2e:run:
-    desc: Run E2E tests (internal - creates PAT, starts MCP server, runs tests)
+    desc: Run E2E tests (internal - creates PAT, starts MCP server in Docker, runs tests)
     internal: true
     cmds:
       - |
@@ -109,32 +109,26 @@ tasks:
         export GITLAB_TOKEN="$TOKEN"
         export RUST_TEST_THREADS="${RUST_TEST_THREADS:-1}"
 
-        # Start MCP HTTP server in background
-        echo "Starting MCP HTTP server on port 20399..."
-        ./target/debug/tanuki-mcp --transport http --http-port 20399 &
-        MCP_PID=$!
+        # Start MCP HTTP server in Docker container
+        echo "Starting MCP HTTP server container..."
+        docker compose -f e2e/docker-compose.yml up -d --build tanuki-mcp
 
         cleanup() {
-          echo "Stopping MCP server..."
-          kill $MCP_PID 2>/dev/null || true
+          echo "Stopping MCP server container..."
+          docker compose -f e2e/docker-compose.yml stop tanuki-mcp
         }
         trap cleanup EXIT
 
-        # Wait for MCP server to be ready
-        echo "Waiting for MCP server..."
-        sleep 1  # Give server time to initialize
+        # Wait for MCP server health endpoint
+        echo "Waiting for MCP server health endpoint..."
         for i in $(seq 1 30); do
-          curl -sf http://127.0.0.1:20399/ >/dev/null 2>&1 && break
-          if ! kill -0 $MCP_PID 2>/dev/null; then
-            echo "ERROR: MCP server process died"
-            exit 1
-          fi
-          sleep 0.5
+          curl -sf http://localhost:20399/health >/dev/null 2>&1 && break
+          sleep 1
         done
-        curl -sf http://127.0.0.1:20399/ >/dev/null 2>&1 || { echo "ERROR: MCP server not responding after timeout"; exit 1; }
+        curl -sf http://localhost:20399/health >/dev/null 2>&1 || { echo "ERROR: MCP server health check failed after 30s"; docker compose -f e2e/docker-compose.yml logs tanuki-mcp; exit 1; }
         echo "MCP server is ready"
 
-        export MCP_HTTP_URL=http://127.0.0.1:20399/sse
+        export MCP_HTTP_URL=http://localhost:20399/sse
         cargo test -p tanuki-mcp-e2e {{.FILTER}} {{.CLI_ARGS}}
 
   e2e:run:stdio-only:
@@ -153,7 +147,7 @@ tasks:
   e2e:gitlab:up:
     desc: Start GitLab CE container for E2E tests
     cmds:
-      - docker compose -f e2e/docker-compose.yml up -d
+      - docker compose -f e2e/docker-compose.yml up -d gitlab gitlab-runner
     status:
       - docker inspect tanuki-mcp-e2e-gitlab --format '{{.State.Running}}' 2>/dev/null | grep -q true
 
@@ -166,6 +160,11 @@ tasks:
     desc: Show GitLab container logs
     cmds:
       - docker compose -f e2e/docker-compose.yml logs -f gitlab
+
+  e2e:mcp:logs:
+    desc: Show MCP server container logs
+    cmds:
+      - docker compose -f e2e/docker-compose.yml logs -f tanuki-mcp
 
   e2e:wait:
     desc: Wait for GitLab to be ready (may take 3-5 minutes)

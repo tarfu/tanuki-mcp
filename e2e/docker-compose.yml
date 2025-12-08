@@ -78,6 +78,38 @@ services:
     volumes:
       - gitlab-runner-config:/etc/gitlab-runner
 
+  tanuki-mcp:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: tanuki-mcp-e2e-server
+    hostname: tanuki-mcp
+    restart: unless-stopped
+    command:
+      [
+        "--transport",
+        "http",
+        "--http-host",
+        "0.0.0.0",
+        "--http-port",
+        "20289",
+        "--no-dashboard",
+      ]
+    environment:
+      - GITLAB_URL=http://gitlab:80
+      - GITLAB_TOKEN=${GITLAB_TOKEN}
+    ports:
+      - "20399:20289"
+    depends_on:
+      gitlab:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:20289/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
 volumes:
   gitlab-config:
   gitlab-logs:

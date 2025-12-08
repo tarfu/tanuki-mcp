@@ -87,12 +87,28 @@ fn test_tool_schemas_valid() {
             tool.name
         );
 
-        // Each tool's schema should have the object schema type
-        // RootSchema from schemars has a schema field with SchemaObject
-        let schema_obj = &tool.input_schema.schema;
+        // Each tool's schema should be a valid JSON object schema
+        // In schemars 1.0, Schema wraps a serde_json::Value
+        let schema_value =
+            serde_json::to_value(&tool.input_schema).expect("Schema should serialize to JSON");
         assert!(
-            schema_obj.object.is_some() || schema_obj.instance_type.is_some(),
-            "Tool {} has invalid schema structure",
+            schema_value.is_object(),
+            "Tool {} schema should be a JSON object",
+            tool.name
+        );
+
+        // Check that schema has type "object" or has properties (valid for tool input)
+        let schema_obj = schema_value.as_object().unwrap();
+        let is_object_type = schema_obj
+            .get("type")
+            .and_then(|v| v.as_str())
+            .map(|t| t == "object")
+            .unwrap_or(false);
+        let has_properties = schema_obj.contains_key("properties");
+
+        assert!(
+            is_object_type || has_properties,
+            "Tool {} has invalid schema structure (not an object type)",
             tool.name
         );
     }

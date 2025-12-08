@@ -7,7 +7,7 @@ use crate::error::{AccessDeniedError, ToolError};
 use crate::tools::executor::ToolInfo;
 use crate::tools::executor::{ToolContext, ToolExecutor, ToolOutput};
 use async_trait::async_trait;
-use schemars::schema::RootSchema;
+use schemars::Schema;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -25,7 +25,7 @@ pub struct RegisteredTool {
     /// Operation type for access control
     pub operation: OperationType,
     /// JSON Schema for the tool's input
-    pub input_schema: RootSchema,
+    pub input_schema: Schema,
     /// The tool handler
     handler: Box<dyn ToolHandler>,
 }

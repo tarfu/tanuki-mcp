@@ -4,10 +4,11 @@
 
 use crate::server::GitLabMcpHandler;
 use crate::util::bind_port_strict;
+use axum::{Json, routing::get};
 use rmcp::transport::sse_server::{SseServer, SseServerConfig};
 use std::net::SocketAddr;
 use tokio_util::sync::CancellationToken;
-use tracing::info;
+use tracing::{Instrument, info, info_span};
 
 /// Default port for HTTP/SSE transport
 pub const DEFAULT_HTTP_PORT: u16 = 20289;
@@ -49,6 +50,11 @@ impl HttpConfig {
     }
 }
 
+/// Health check endpoint handler
+async fn health_handler() -> Json<serde_json::Value> {
+    Json(serde_json::json!({"status": "ok"}))
+}
+
 /// Run the MCP server using HTTP/SSE transport
 ///
 /// This starts an HTTP server that accepts SSE connections and handles
@@ -86,24 +92,47 @@ where
 
     let sse_config = SseServerConfig {
         bind: bind_addr,
-        sse_path: config.sse_path,
-        post_path: config.post_path,
+        sse_path: config.sse_path.clone(),
+        post_path: config.post_path.clone(),
         ct: ct.clone(),
+        sse_keep_alive: None,
     };
 
-    let sse_server = SseServer::serve_with_config(sse_config).await?;
+    // Create SSE server and router, then add health endpoint
+    let (sse_server, sse_router) = SseServer::new(sse_config);
 
-    info!(
-        "HTTP/SSE server listening on http://{}",
-        sse_server.config.bind
+    // Add health endpoint to the router
+    let router = sse_router.route("/health", get(health_handler));
+
+    // Bind and serve the router
+    let listener = tokio::net::TcpListener::bind(bind_addr).await?;
+    let server_ct = ct.child_token();
+    let server = axum::serve(listener, router).with_graceful_shutdown({
+        let ct = server_ct.clone();
+        async move {
+            ct.cancelled().await;
+            info!("SSE server cancelled");
+        }
+    });
+
+    tokio::spawn(
+        async move {
+            if let Err(e) = server.await {
+                tracing::error!(error = %e, "SSE server shutdown with error");
+            }
+        }
+        .instrument(info_span!("sse-server", bind_address = %bind_addr)),
     );
-    info!("  SSE endpoint: {}", sse_server.config.sse_path);
-    info!("  Message endpoint: {}", sse_server.config.post_path);
+
+    info!("HTTP/SSE server listening on http://{}", bind_addr);
+    info!("  SSE endpoint: {}", config.sse_path);
+    info!("  Message endpoint: {}", config.post_path);
+    info!("  Health endpoint: /health");
 
     // Use the with_service method to handle incoming connections
-    let server_ct = sse_server.with_service(handler_factory);
+    let _service_ct = sse_server.with_service(handler_factory);
 
-    Ok(server_ct)
+    Ok(ct)
 }
 
 /// Run the MCP server using HTTP/SSE transport and wait for shutdown

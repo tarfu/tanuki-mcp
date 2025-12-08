@@ -14,6 +14,9 @@ COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY tanuki-mcp-macros ./tanuki-mcp-macros
 COPY src ./src
 
+# Remove e2e from workspace members (it's not needed for the main binary)
+RUN sed -i 's/members = \[".", "tanuki-mcp-macros", "e2e"\]/members = [".", "tanuki-mcp-macros"]/' Cargo.toml
+
 # Build release binary
 RUN cargo build --release
 
@@ -24,6 +27,7 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     libssl3 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user

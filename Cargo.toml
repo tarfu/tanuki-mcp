@@ -16,7 +16,7 @@ categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
 # MCP SDK
-rmcp = { version = "0.1", features = ["server", "transport-io", "transport-sse-server"] }
+rmcp = { version = "0.10", features = ["server", "transport-io", "transport-sse-server"] }
 
 # Async runtime
 tokio = { version = "1", features = ["full", "macros", "rt-multi-thread"] }
@@ -28,21 +28,21 @@ async-trait = "0.1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 
 # HTTP server for SSE transport
-axum = { version = "0.7", features = ["json"] }
+axum = { version = "0.8", features = ["json"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
 
 # Configuration
-config = { version = "0.14", features = ["toml"] }
+config = { version = "0.15", features = ["toml"] }
 dotenvy = "0.15"
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-toml = "0.8"
+toml = "0.9"
 
 # JSON Schema for MCP tools
-schemars = "0.8"
+schemars = "1"
 
 # Error handling
 thiserror = "2"
@@ -65,7 +65,7 @@ urlencoding = "2"
 base64 = "0.22"
 
 # Utilities
-rand = "0.8"
+rand = "0.9"
 shellexpand = "3"
 
 # Our proc macro crate

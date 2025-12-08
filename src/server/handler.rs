@@ -7,7 +7,7 @@ use crate::config::AppConfig;
 use crate::dashboard::DashboardMetrics;
 use crate::gitlab::GitLabClient;
 use crate::tools::{ContentBlock, ToolContext, ToolOutput, ToolRegistry, definitions};
-use rmcp::Error as McpError;
+use rmcp::ErrorData as McpError;
 use rmcp::handler::server::ServerHandler;
 use rmcp::model::{
     CallToolRequestParam, CallToolResult, Content, Implementation, InitializeResult,
@@ -135,6 +135,8 @@ impl GitLabMcpHandler {
         CallToolResult {
             content,
             is_error: Some(output.is_error),
+            meta: None,
+            structured_content: None,
         }
     }
 
@@ -175,8 +177,13 @@ impl GitLabMcpHandler {
 
                 Tool {
                     name: Cow::Owned(tool.name.to_string()),
-                    description: Cow::Owned(description),
+                    description: Some(Cow::Owned(description)),
                     input_schema: Arc::new(input_schema),
+                    annotations: None,
+                    icons: None,
+                    meta: None,
+                    output_schema: None,
+                    title: None,
                 }
             })
             .collect()
@@ -207,6 +214,8 @@ impl GitLabMcpHandler {
                 CallToolResult {
                     content: vec![Content::text(format!("Error: {}", e))],
                     is_error: Some(true),
+                    meta: None,
+                    structured_content: None,
                 }
             }
         }
@@ -226,6 +235,9 @@ impl ServerHandler for GitLabMcpHandler {
             server_info: Implementation {
                 name: self.name.clone(),
                 version: self.version.clone(),
+                icons: None,
+                title: None,
+                website_url: None,
             },
             instructions: Some(
                 "GitLab MCP Server - Access GitLab resources with fine-grained access control"
@@ -237,7 +249,7 @@ impl ServerHandler for GitLabMcpHandler {
     #[instrument(skip(self, _context))]
     fn list_tools(
         &self,
-        _request: PaginatedRequestParam,
+        _request: Option<PaginatedRequestParam>,
         _context: RequestContext<RoleServer>,
     ) -> impl Future<Output = Result<ListToolsResult, McpError>> + Send + '_ {
         debug!("Listing tools");
