@@ -89,12 +89,18 @@ services:
     hostname: tanuki-mcp
     restart: unless-stopped
     command:
-      ["--transport", "http", "--http-host", "0.0.0.0", "--http-port", "20289"]
+      [
+        "--transport", "http",
+        "--http-host", "0.0.0.0",
+        "--http-port", "20289",
+        "--dashboard-host", "0.0.0.0"
+      ]
     environment:
       - GITLAB_URL=http://gitlab:80
       - GITLAB_TOKEN=${GITLAB_TOKEN:-}
     ports:
       - "20399:20289"
+      - "20400:19892"
     # Note: depends_on removed because gitlab is in a different profile.
     # The Taskfile manages the startup order: infra profile first, then mcp profile.
     healthcheck:
