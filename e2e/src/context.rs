@@ -66,7 +66,7 @@ impl TestContext {
 
     /// Create a test project with a unique name.
     pub async fn create_test_project(&mut self) -> Result<()> {
-        let project_name = format!("e2e-test-{}", Uuid::new_v4().to_string()[..8].to_string());
+        let project_name = format!("e2e-test-{}", &Uuid::new_v4().to_string()[..8]);
 
         let project = self
             .gitlab

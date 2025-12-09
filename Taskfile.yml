@@ -128,7 +128,7 @@ tasks:
         curl -sf http://localhost:20399/health >/dev/null 2>&1 || { echo "ERROR: MCP server health check failed after 30s"; docker compose -f e2e/docker-compose.yml --profile mcp logs; exit 1; }
         echo "MCP server is ready"
 
-        export MCP_HTTP_URL=http://localhost:20399/sse
+        export MCP_HTTP_URL=http://localhost:20399/mcp
         cargo test -p tanuki-mcp-e2e {{.FILTER}} {{.CLI_ARGS}}
 
   e2e:run:stdio-only:

@@ -1,6 +1,6 @@
 //! Transport layer tests
 //!
-//! Tests for HTTP/SSE configuration and basic functionality.
+//! Tests for HTTP configuration and basic functionality.
 
 use std::net::SocketAddr;
 use tanuki_mcp::transport::HttpConfig;
@@ -10,8 +10,7 @@ fn test_http_config_default() {
     let config = HttpConfig::default();
 
     assert_eq!(config.bind, SocketAddr::from(([127, 0, 0, 1], 20289)));
-    assert_eq!(config.sse_path, "/sse");
-    assert_eq!(config.post_path, "/message");
+    assert_eq!(config.mcp_path, "/mcp");
 }
 
 #[test]
@@ -20,8 +19,7 @@ fn test_http_config_new() {
     let config = HttpConfig::new(addr);
 
     assert_eq!(config.bind, addr);
-    assert_eq!(config.sse_path, "/sse");
-    assert_eq!(config.post_path, "/message");
+    assert_eq!(config.mcp_path, "/mcp");
 }
 
 #[test]
@@ -53,8 +51,7 @@ fn test_http_config_clone() {
     let config2 = config1.clone();
 
     assert_eq!(config1.bind, config2.bind);
-    assert_eq!(config1.sse_path, config2.sse_path);
-    assert_eq!(config1.post_path, config2.post_path);
+    assert_eq!(config1.mcp_path, config2.mcp_path);
 }
 
 #[test]
@@ -64,11 +61,10 @@ fn test_http_config_debug() {
 
     assert!(debug_str.contains("HttpConfig"));
     assert!(debug_str.contains("127.0.0.1:20289"));
-    assert!(debug_str.contains("/sse"));
-    assert!(debug_str.contains("/message"));
+    assert!(debug_str.contains("/mcp"));
 }
 
-// Note: Full HTTP/SSE integration tests would require starting a real server
+// Note: Full HTTP integration tests would require starting a real server
 // and making HTTP requests, which is more complex. The basic config tests
 // above verify the configuration layer works correctly.
 
@@ -87,7 +83,6 @@ async fn test_http_server_config_creation() {
 
     for config in configs {
         // Should be able to create configs without panic
-        assert!(!config.sse_path.is_empty());
-        assert!(!config.post_path.is_empty());
+        assert!(!config.mcp_path.is_empty());
     }
 }

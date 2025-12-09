@@ -2,7 +2,7 @@
 //!
 //! Provides a unified interface for testing tanuki-mcp via different transports:
 //! - Stdio: Spawns tanuki-mcp as a child process
-//! - HTTP/SSE: Connects to tanuki-mcp running in HTTP mode
+//! - HTTP: Connects to tanuki-mcp running in HTTP mode (Streamable HTTP transport)
 
 use std::path::Path;
 use std::time::Duration;
@@ -10,8 +10,8 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use rmcp::model::{CallToolRequestParam, CallToolResult, ListToolsResult};
 use rmcp::service::{Peer, RoleClient, RunningService, ServiceExt};
-use rmcp::transport::SseClientTransport;
 use rmcp::transport::child_process::TokioChildProcess;
+use rmcp::transport::streamable_http_client::StreamableHttpClientTransport;
 use serde_json::Value;
 use tokio::process::{Child, Command};
 use tokio::time::sleep;
@@ -21,7 +21,7 @@ use tokio::time::sleep;
 pub enum TransportKind {
     /// Stdio transport - spawns tanuki-mcp as a child process.
     Stdio,
-    /// HTTP/SSE transport - connects to a running tanuki-mcp HTTP server.
+    /// HTTP transport - connects to a running tanuki-mcp HTTP server.
     Http,
 }
 
@@ -40,8 +40,8 @@ pub struct McpClient {
     pub kind: TransportKind,
     /// The running service (for stdio transport).
     running_service: Option<RunningService<RoleClient, ()>>,
-    /// The peer for making requests (for SSE transport).
-    sse_peer: Option<Peer<RoleClient>>,
+    /// The peer for making requests (for HTTP transport).
+    http_peer: Option<Peer<RoleClient>>,
     /// Child process for HTTP server (needs to be kept alive).
     http_server_process: Option<Child>,
 }
@@ -68,15 +68,15 @@ impl McpClient {
         Ok(Self {
             kind: TransportKind::Stdio,
             running_service: Some(running_service),
-            sse_peer: None,
+            http_peer: None,
             http_server_process: None,
         })
     }
 
-    /// Create a new MCP client using the HTTP/SSE transport.
+    /// Create a new MCP client using the HTTP transport.
     ///
     /// First spawns tanuki-mcp in HTTP mode, waits for it to be ready,
-    /// then connects via SSE.
+    /// then connects via Streamable HTTP.
     pub async fn new_http(binary_path: &Path, config_path: &Path, http_port: u16) -> Result<Self> {
         // Start tanuki-mcp in HTTP mode
         let mut cmd = Command::new(binary_path);
@@ -91,23 +91,21 @@ impl McpClient {
         let child = cmd.spawn().context("Failed to spawn HTTP server")?;
 
         // Wait for server to be ready
-        let sse_url = format!("http://127.0.0.1:{}/sse", http_port);
-        Self::wait_for_server(&sse_url, Duration::from_secs(30)).await?;
+        let mcp_url = format!("http://127.0.0.1:{}/mcp", http_port);
+        Self::wait_for_server(&mcp_url, Duration::from_secs(30)).await?;
 
-        // Connect via SSE
-        let transport = SseClientTransport::start(sse_url)
-            .await
-            .context("Failed to create SSE transport")?;
+        // Connect via Streamable HTTP
+        let transport = StreamableHttpClientTransport::from_uri(mcp_url);
 
         let running_service =
             ().serve(transport)
                 .await
-                .context("Failed to connect to MCP server via SSE")?;
+                .context("Failed to connect to MCP server via HTTP")?;
 
         Ok(Self {
             kind: TransportKind::Http,
             running_service: Some(running_service),
-            sse_peer: None,
+            http_peer: None,
             http_server_process: Some(child),
         })
     }
@@ -145,7 +143,7 @@ impl McpClient {
     fn peer(&self) -> &Peer<RoleClient> {
         if let Some(ref service) = self.running_service {
             service.peer()
-        } else if let Some(ref peer) = self.sse_peer {
+        } else if let Some(ref peer) = self.http_peer {
             peer
         } else {
             panic!("No peer available")

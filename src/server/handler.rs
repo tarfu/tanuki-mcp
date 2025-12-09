@@ -257,6 +257,7 @@ impl ServerHandler for GitLabMcpHandler {
             Ok(ListToolsResult {
                 tools: self.get_mcp_tools(),
                 next_cursor: None,
+                meta: None,
             })
         }
     }

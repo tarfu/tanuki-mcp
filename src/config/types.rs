@@ -105,10 +105,10 @@ pub struct ServerConfig {
     /// Transport mode
     pub transport: TransportMode,
 
-    /// HTTP host (for http/sse transport)
+    /// HTTP host (for http transport)
     pub host: String,
 
-    /// HTTP port (for http/sse transport)
+    /// HTTP port (for http transport)
     pub port: u16,
 
     /// Server name for MCP

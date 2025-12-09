@@ -8,7 +8,7 @@ description = "End-to-end tests for tanuki-mcp"
 [dependencies]
 # MCP SDK - client features for testing
 # Using same version as main crate for compatibility
-rmcp = { version = "0.10", features = ["client", "transport-child-process", "transport-sse-client-reqwest"] }
+rmcp = { version = "0.11", features = ["client", "transport-child-process", "transport-streamable-http-client-reqwest"] }
 
 # Async runtime
 tokio = { version = "1", features = ["full", "process", "test-util"] }

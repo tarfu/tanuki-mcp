@@ -4,7 +4,7 @@
 //! initialized once and reused across all tests. This dramatically reduces
 //! test overhead by avoiding per-test server spawning.
 //!
-//! - HTTP transport: Peer is Clone, tests can call concurrently
+//! - HTTP transport (Streamable HTTP): Peer is Clone, tests can call concurrently
 //! - Stdio transport: Mutex-protected, tests serialize access
 //!
 //! # Runtime Considerations
@@ -19,8 +19,8 @@ use std::sync::OnceLock;
 use anyhow::{Context, Result};
 use rmcp::model::{CallToolRequestParam, CallToolResult, ListToolsResult};
 use rmcp::service::{Peer, RoleClient, ServiceExt};
-use rmcp::transport::SseClientTransport;
 use rmcp::transport::child_process::TokioChildProcess;
+use rmcp::transport::streamable_http_client::StreamableHttpClientTransport;
 use serde_json::Value;
 use tempfile::TempDir;
 use tokio::process::Command;
@@ -236,14 +236,9 @@ pub struct SharedHttpClient {
 impl SharedHttpClient {
     /// Connect to an external HTTP server.
     ///
-    /// The URL should be the SSE endpoint (e.g., `http://127.0.0.1:20399/sse`).
+    /// The URL should be the MCP endpoint (e.g., `http://127.0.0.1:20399/mcp`).
     async fn connect(url: &str) -> Result<Self> {
-        let transport = SseClientTransport::start(url).await.with_context(|| {
-            format!(
-                "Failed to connect to MCP server at {}. Is the server running?",
-                url
-            )
-        })?;
+        let transport = StreamableHttpClientTransport::from_uri(url.to_string());
 
         let running_service =
             ().serve(transport)
