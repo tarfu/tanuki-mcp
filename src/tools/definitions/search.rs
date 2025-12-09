@@ -152,10 +152,3 @@ impl ToolExecutor for SearchGroup {
         ToolOutput::json_value(result)
     }
 }
-
-/// Register all search tools
-pub fn register(registry: &mut crate::tools::ToolRegistry) {
-    registry.register::<SearchGlobal>();
-    registry.register::<SearchProject>();
-    registry.register::<SearchGroup>();
-}

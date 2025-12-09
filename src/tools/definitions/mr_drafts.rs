@@ -4,7 +4,7 @@ use serde_json::json;
 use tanuki_mcp_macros::gitlab_tool;
 
 use crate::error::ToolError;
-use crate::tools::{ToolContext, ToolExecutor, ToolOutput, ToolRegistry};
+use crate::tools::{ToolContext, ToolExecutor, ToolOutput};
 use async_trait::async_trait;
 
 // ============================================================================
@@ -354,15 +354,4 @@ impl ToolExecutor for PublishAllMrDraftNotes {
             "merge_request_iid": self.merge_request_iid
         }))
     }
-}
-
-/// Register all MR draft notes tools
-pub fn register(registry: &mut ToolRegistry) {
-    registry.register::<ListMrDraftNotes>();
-    registry.register::<GetMrDraftNote>();
-    registry.register::<CreateMrDraftNote>();
-    registry.register::<UpdateMrDraftNote>();
-    registry.register::<DeleteMrDraftNote>();
-    registry.register::<PublishMrDraftNote>();
-    registry.register::<PublishAllMrDraftNotes>();
 }

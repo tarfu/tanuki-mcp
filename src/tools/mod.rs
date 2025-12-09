@@ -7,7 +7,7 @@ pub mod executor;
 pub mod registry;
 
 pub use executor::{ContentBlock, ToolContext, ToolExecutor, ToolInfo, ToolOutput};
-pub use registry::{RegisteredTool, ToolRegistry};
+pub use registry::{RegisteredTool, ToolRegistration, ToolRegistry};
 
 // Re-export the macro for convenience
 pub use tanuki_mcp_macros::gitlab_tool;

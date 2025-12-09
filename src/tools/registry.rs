@@ -15,6 +15,17 @@ use std::collections::HashMap;
 use std::time::Instant;
 use tracing::{debug, instrument};
 
+/// Compile-time tool registration entry for auto-discovery
+///
+/// This struct is submitted via `inventory::submit!` by the `#[gitlab_tool]` macro,
+/// allowing tools to be automatically registered without explicit calls.
+pub struct ToolRegistration {
+    /// Function that registers the tool with a registry
+    pub register_fn: fn(&mut ToolRegistry),
+}
+
+inventory::collect!(ToolRegistration);
+
 /// A registered tool with all its metadata
 pub struct RegisteredTool {
     /// Tool name
@@ -178,6 +189,16 @@ impl ToolRegistry {
     /// Check if the registry is empty
     pub fn is_empty(&self) -> bool {
         self.tools.is_empty()
+    }
+
+    /// Register all tools discovered via `#[gitlab_tool]` macro
+    ///
+    /// This method iterates over all `ToolRegistration` entries submitted at compile time
+    /// and registers each tool with this registry.
+    pub fn register_all_auto(&mut self) {
+        for registration in inventory::iter::<ToolRegistration> {
+            (registration.register_fn)(self);
+        }
     }
 
     /// Execute a tool by name

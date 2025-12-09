@@ -69,6 +69,9 @@ base64 = "0.22"
 rand = "0.9"
 shellexpand = "3"
 
+# Compile-time tool registration
+inventory = "0.3"
+
 # Our proc macro crate
 tanuki-mcp-macros = { version = "0.1.0", path = "tanuki-mcp-macros" }
 

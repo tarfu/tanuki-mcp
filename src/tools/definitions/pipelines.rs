@@ -441,20 +441,3 @@ impl ToolExecutor for GetPipelineVariables {
         ToolOutput::json_value(result)
     }
 }
-
-/// Register all pipeline tools
-pub fn register(registry: &mut crate::tools::ToolRegistry) {
-    registry.register::<ListPipelines>();
-    registry.register::<GetPipeline>();
-    registry.register::<CreatePipeline>();
-    registry.register::<RetryPipeline>();
-    registry.register::<CancelPipeline>();
-    registry.register::<DeletePipeline>();
-    registry.register::<ListPipelineJobs>();
-    registry.register::<GetJob>();
-    registry.register::<GetJobLog>();
-    registry.register::<RetryJob>();
-    registry.register::<CancelJob>();
-    registry.register::<PlayJob>();
-    registry.register::<GetPipelineVariables>();
-}

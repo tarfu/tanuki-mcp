@@ -296,14 +296,3 @@ impl ToolExecutor for GetMilestoneMergeRequests {
         ToolOutput::json_value(result)
     }
 }
-
-/// Register all milestone tools
-pub fn register(registry: &mut crate::tools::ToolRegistry) {
-    registry.register::<ListMilestones>();
-    registry.register::<GetMilestone>();
-    registry.register::<CreateMilestone>();
-    registry.register::<UpdateMilestone>();
-    registry.register::<DeleteMilestone>();
-    registry.register::<GetMilestoneIssues>();
-    registry.register::<GetMilestoneMergeRequests>();
-}

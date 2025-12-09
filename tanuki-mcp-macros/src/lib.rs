@@ -7,15 +7,16 @@ use darling::{FromMeta, ast::NestedMeta};
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{DeriveInput, Ident, parse_macro_input};
+use syn::{Attribute, DeriveInput, Expr, Ident, Lit, Meta, parse_macro_input};
 
 /// Arguments for the `#[gitlab_tool]` attribute
 #[derive(Debug, FromMeta)]
 struct GitLabToolArgs {
     /// Tool name (e.g., "create_issue")
     name: String,
-    /// Tool description for MCP
-    description: String,
+    /// Tool description for MCP (optional if doc comment provided)
+    #[darling(default)]
+    description: Option<String>,
     /// Tool category for access control
     category: String,
     /// Operation type: "read", "write", "delete", or "execute"
@@ -23,6 +24,28 @@ struct GitLabToolArgs {
     /// Optional: field name containing the project identifier
     #[darling(default)]
     project_field: Option<String>,
+}
+
+/// Extract description from doc comments (first paragraph only)
+fn extract_doc_comment(attrs: &[Attribute]) -> Option<String> {
+    let mut doc_lines = Vec::new();
+    for attr in attrs {
+        if attr.path().is_ident("doc")
+            && let Meta::NameValue(meta) = &attr.meta
+            && let Expr::Lit(expr_lit) = &meta.value
+            && let Lit::Str(lit_str) = &expr_lit.lit
+        {
+            let line = lit_str.value();
+            let trimmed = line.trim();
+            // Stop at first blank line (end of first paragraph)
+            if trimmed.is_empty() && !doc_lines.is_empty() {
+                break;
+            } else if !trimmed.is_empty() {
+                doc_lines.push(trimmed.to_string());
+            }
+        }
+    }
+    (!doc_lines.is_empty()).then(|| doc_lines.join(" "))
 }
 
 /// Derive macro for GitLab MCP tools.
@@ -80,9 +103,23 @@ pub fn gitlab_tool(attr: TokenStream, item: TokenStream) -> TokenStream {
 fn impl_gitlab_tool(args: &GitLabToolArgs, input: &DeriveInput) -> TokenStream2 {
     let struct_name = &input.ident;
     let tool_name = &args.name;
-    let description = &args.description;
     let category = &args.category;
     let operation = &args.operation;
+
+    // Resolve description: explicit argument takes precedence over doc comments
+    let description = match &args.description {
+        Some(d) => d.clone(),
+        None => match extract_doc_comment(&input.attrs) {
+            Some(d) => d,
+            None => {
+                return syn::Error::new_spanned(
+                    input,
+                    "Tool requires description via `description = \"...\"` or doc comment (///)",
+                )
+                .to_compile_error();
+            }
+        },
+    };
 
     // Convert category string to ToolCategory variant
     let category_variant = match category.as_str() {
@@ -171,6 +208,12 @@ fn impl_gitlab_tool(args: &GitLabToolArgs, input: &DeriveInput) -> TokenStream2 
         }
     };
 
+    // Generate unique registration function name based on struct name
+    let register_fn_name = Ident::new(
+        &format!("__register_{}", struct_name.to_string().to_lowercase()),
+        proc_macro2::Span::call_site(),
+    );
+
     quote! {
         #(#attrs)*
         #[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
@@ -210,6 +253,17 @@ fn impl_gitlab_tool(args: &GitLabToolArgs, input: &DeriveInput) -> TokenStream2 
             }
 
             #project_extraction
+        }
+
+        // Auto-registration via inventory
+        fn #register_fn_name(registry: &mut crate::tools::ToolRegistry) {
+            registry.register::<#struct_name>();
+        }
+
+        ::inventory::submit! {
+            crate::tools::ToolRegistration {
+                register_fn: #register_fn_name,
+            }
         }
     }
 }

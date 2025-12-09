@@ -200,12 +200,3 @@ impl ToolExecutor for DeleteWikiPage {
         )))
     }
 }
-
-/// Register all wiki tools
-pub fn register(registry: &mut crate::tools::ToolRegistry) {
-    registry.register::<ListWikiPages>();
-    registry.register::<GetWikiPage>();
-    registry.register::<CreateWikiPage>();
-    registry.register::<UpdateWikiPage>();
-    registry.register::<DeleteWikiPage>();
-}

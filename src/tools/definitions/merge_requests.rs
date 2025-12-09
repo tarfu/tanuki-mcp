@@ -2,32 +2,32 @@
 //!
 //! Tools for managing GitLab merge requests.
 
-use crate::access_control::{AccessControlled, OperationType, ToolCategory};
 use crate::error::ToolError;
 use crate::gitlab::GitLabClient;
-use crate::tools::{ToolContext, ToolExecutor, ToolInfo, ToolOutput, ToolRegistry};
+use crate::tools::{ToolContext, ToolExecutor, ToolOutput};
 use crate::util::QueryBuilder;
 use async_trait::async_trait;
+use serde::Serialize;
+use tanuki_mcp_macros::gitlab_tool;
 
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-
-/// Register all merge request tools
-pub fn register(registry: &mut ToolRegistry) {
-    registry.register::<ListMergeRequests>();
-    registry.register::<GetMergeRequest>();
-    registry.register::<CreateMergeRequest>();
-    registry.register::<UpdateMergeRequest>();
-    registry.register::<MergeMergeRequest>();
-    registry.register::<GetMergeRequestDiffs>();
+fn default_page() -> u32 {
+    1
+}
+fn default_per_page() -> u32 {
+    20
 }
 
 // ============================================================================
 // list_merge_requests
 // ============================================================================
 
-/// List merge requests in a project
-#[derive(Debug, Clone, Deserialize, JsonSchema)]
+/// List merge requests in a GitLab project with optional filtering
+#[gitlab_tool(
+    name = "list_merge_requests",
+    category = "merge_requests",
+    operation = "read",
+    project_field = "project"
+)]
 pub struct ListMergeRequests {
     /// Project ID or URL-encoded path
     pub project: String,
@@ -73,43 +73,6 @@ pub struct ListMergeRequests {
     pub per_page: u32,
 }
 
-fn default_page() -> u32 {
-    1
-}
-fn default_per_page() -> u32 {
-    20
-}
-
-impl ToolInfo for ListMergeRequests {
-    fn name() -> &'static str {
-        "list_merge_requests"
-    }
-    fn description() -> &'static str {
-        "List merge requests in a GitLab project with optional filtering"
-    }
-    fn category() -> ToolCategory {
-        ToolCategory::MergeRequests
-    }
-    fn operation_type() -> OperationType {
-        OperationType::Read
-    }
-}
-
-impl AccessControlled for ListMergeRequests {
-    fn tool_name(&self) -> &'static str {
-        "list_merge_requests"
-    }
-    fn category(&self) -> ToolCategory {
-        ToolCategory::MergeRequests
-    }
-    fn operation_type(&self) -> OperationType {
-        OperationType::Read
-    }
-    fn extract_project(&self) -> Option<String> {
-        Some(self.project.clone())
-    }
-}
-
 #[async_trait]
 impl ToolExecutor for ListMergeRequests {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
@@ -137,8 +100,13 @@ impl ToolExecutor for ListMergeRequests {
 // get_merge_request
 // ============================================================================
 
-/// Get details of a specific merge request
-#[derive(Debug, Clone, Deserialize, JsonSchema)]
+/// Get detailed information about a specific merge request
+#[gitlab_tool(
+    name = "get_merge_request",
+    category = "merge_requests",
+    operation = "read",
+    project_field = "project"
+)]
 pub struct GetMergeRequest {
     /// Project ID or URL-encoded path
     pub project: String,
@@ -153,36 +121,6 @@ pub struct GetMergeRequest {
     /// Include changes/diffs in response
     #[serde(default)]
     pub include_changes: Option<bool>,
-}
-
-impl ToolInfo for GetMergeRequest {
-    fn name() -> &'static str {
-        "get_merge_request"
-    }
-    fn description() -> &'static str {
-        "Get detailed information about a specific merge request"
-    }
-    fn category() -> ToolCategory {
-        ToolCategory::MergeRequests
-    }
-    fn operation_type() -> OperationType {
-        OperationType::Read
-    }
-}
-
-impl AccessControlled for GetMergeRequest {
-    fn tool_name(&self) -> &'static str {
-        "get_merge_request"
-    }
-    fn category(&self) -> ToolCategory {
-        ToolCategory::MergeRequests
-    }
-    fn operation_type(&self) -> OperationType {
-        OperationType::Read
-    }
-    fn extract_project(&self) -> Option<String> {
-        Some(self.project.clone())
-    }
 }
 
 #[async_trait]
@@ -212,8 +150,13 @@ impl ToolExecutor for GetMergeRequest {
 // create_merge_request
 // ============================================================================
 
-/// Create a new merge request
-#[derive(Debug, Clone, Deserialize, JsonSchema)]
+/// Create a new merge request in a GitLab project
+#[gitlab_tool(
+    name = "create_merge_request",
+    category = "merge_requests",
+    operation = "write",
+    project_field = "project"
+)]
 pub struct CreateMergeRequest {
     /// Project ID or URL-encoded path
     pub project: String,
@@ -262,36 +205,6 @@ pub struct CreateMergeRequest {
     /// Delete source branch after merge
     #[serde(default)]
     pub remove_source_branch: Option<bool>,
-}
-
-impl ToolInfo for CreateMergeRequest {
-    fn name() -> &'static str {
-        "create_merge_request"
-    }
-    fn description() -> &'static str {
-        "Create a new merge request in a GitLab project"
-    }
-    fn category() -> ToolCategory {
-        ToolCategory::MergeRequests
-    }
-    fn operation_type() -> OperationType {
-        OperationType::Write
-    }
-}
-
-impl AccessControlled for CreateMergeRequest {
-    fn tool_name(&self) -> &'static str {
-        "create_merge_request"
-    }
-    fn category(&self) -> ToolCategory {
-        ToolCategory::MergeRequests
-    }
-    fn operation_type(&self) -> OperationType {
-        OperationType::Write
-    }
-    fn extract_project(&self) -> Option<String> {
-        Some(self.project.clone())
-    }
 }
 
 #[async_trait]
@@ -349,8 +262,13 @@ impl ToolExecutor for CreateMergeRequest {
 // update_merge_request
 // ============================================================================
 
-/// Update an existing merge request
-#[derive(Debug, Clone, Deserialize, JsonSchema)]
+/// Update an existing merge request's properties
+#[gitlab_tool(
+    name = "update_merge_request",
+    category = "merge_requests",
+    operation = "write",
+    project_field = "project"
+)]
 pub struct UpdateMergeRequest {
     /// Project ID or URL-encoded path
     pub project: String,
@@ -401,36 +319,6 @@ pub struct UpdateMergeRequest {
     /// Set remove source branch on merge
     #[serde(default)]
     pub remove_source_branch: Option<bool>,
-}
-
-impl ToolInfo for UpdateMergeRequest {
-    fn name() -> &'static str {
-        "update_merge_request"
-    }
-    fn description() -> &'static str {
-        "Update an existing merge request's properties"
-    }
-    fn category() -> ToolCategory {
-        ToolCategory::MergeRequests
-    }
-    fn operation_type() -> OperationType {
-        OperationType::Write
-    }
-}
-
-impl AccessControlled for UpdateMergeRequest {
-    fn tool_name(&self) -> &'static str {
-        "update_merge_request"
-    }
-    fn category(&self) -> ToolCategory {
-        ToolCategory::MergeRequests
-    }
-    fn operation_type(&self) -> OperationType {
-        OperationType::Write
-    }
-    fn extract_project(&self) -> Option<String> {
-        Some(self.project.clone())
-    }
 }
 
 #[async_trait]
@@ -491,8 +379,13 @@ impl ToolExecutor for UpdateMergeRequest {
 // merge_merge_request
 // ============================================================================
 
-/// Merge a merge request
-#[derive(Debug, Clone, Deserialize, JsonSchema)]
+/// Merge a merge request (requires appropriate permissions)
+#[gitlab_tool(
+    name = "merge_merge_request",
+    category = "merge_requests",
+    operation = "execute",
+    project_field = "project"
+)]
 pub struct MergeMergeRequest {
     /// Project ID or URL-encoded path
     pub project: String,
@@ -523,36 +416,6 @@ pub struct MergeMergeRequest {
     /// SHA that must match HEAD of source branch
     #[serde(default)]
     pub sha: Option<String>,
-}
-
-impl ToolInfo for MergeMergeRequest {
-    fn name() -> &'static str {
-        "merge_merge_request"
-    }
-    fn description() -> &'static str {
-        "Merge a merge request (requires appropriate permissions)"
-    }
-    fn category() -> ToolCategory {
-        ToolCategory::MergeRequests
-    }
-    fn operation_type() -> OperationType {
-        OperationType::Execute
-    }
-}
-
-impl AccessControlled for MergeMergeRequest {
-    fn tool_name(&self) -> &'static str {
-        "merge_merge_request"
-    }
-    fn category(&self) -> ToolCategory {
-        ToolCategory::MergeRequests
-    }
-    fn operation_type(&self) -> OperationType {
-        OperationType::Execute
-    }
-    fn extract_project(&self) -> Option<String> {
-        Some(self.project.clone())
-    }
 }
 
 #[async_trait]
@@ -598,8 +461,13 @@ impl ToolExecutor for MergeMergeRequest {
 // get_merge_request_diffs
 // ============================================================================
 
-/// Get diffs for a merge request
-#[derive(Debug, Clone, Deserialize, JsonSchema)]
+/// Get the diffs/changes for a merge request
+#[gitlab_tool(
+    name = "get_merge_request_diffs",
+    category = "merge_requests",
+    operation = "read",
+    project_field = "project"
+)]
 pub struct GetMergeRequestDiffs {
     /// Project ID or URL-encoded path
     pub project: String,
@@ -618,36 +486,6 @@ pub struct GetMergeRequestDiffs {
     /// Return diffs in unified format
     #[serde(default)]
     pub unidiff: Option<bool>,
-}
-
-impl ToolInfo for GetMergeRequestDiffs {
-    fn name() -> &'static str {
-        "get_merge_request_diffs"
-    }
-    fn description() -> &'static str {
-        "Get the diffs/changes for a merge request"
-    }
-    fn category() -> ToolCategory {
-        ToolCategory::MergeRequests
-    }
-    fn operation_type() -> OperationType {
-        OperationType::Read
-    }
-}
-
-impl AccessControlled for GetMergeRequestDiffs {
-    fn tool_name(&self) -> &'static str {
-        "get_merge_request_diffs"
-    }
-    fn category(&self) -> ToolCategory {
-        ToolCategory::MergeRequests
-    }
-    fn operation_type(&self) -> OperationType {
-        OperationType::Read
-    }
-    fn extract_project(&self) -> Option<String> {
-        Some(self.project.clone())
-    }
 }
 
 #[async_trait]

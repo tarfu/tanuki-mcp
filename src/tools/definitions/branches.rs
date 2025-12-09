@@ -215,13 +215,3 @@ impl ToolExecutor for UnprotectBranch {
         )))
     }
 }
-
-/// Register all branch tools
-pub fn register(registry: &mut crate::tools::ToolRegistry) {
-    registry.register::<ListBranches>();
-    registry.register::<GetBranch>();
-    registry.register::<CreateBranch>();
-    registry.register::<DeleteBranch>();
-    registry.register::<ProtectBranch>();
-    registry.register::<UnprotectBranch>();
-}

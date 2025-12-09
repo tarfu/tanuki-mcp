@@ -4,7 +4,7 @@ use serde_json::json;
 use tanuki_mcp_macros::gitlab_tool;
 
 use crate::error::ToolError;
-use crate::tools::{ToolContext, ToolExecutor, ToolOutput, ToolRegistry};
+use crate::tools::{ToolContext, ToolExecutor, ToolOutput};
 use async_trait::async_trait;
 
 // ============================================================================
@@ -223,13 +223,4 @@ impl ToolExecutor for DeleteIssueNote {
         ctx.gitlab.delete(&endpoint).await?;
         ToolOutput::json_value(json!({"status": "deleted", "note_id": self.note_id}))
     }
-}
-
-/// Register all issue notes tools
-pub fn register(registry: &mut ToolRegistry) {
-    registry.register::<ListIssueNotes>();
-    registry.register::<CreateIssueNote>();
-    registry.register::<GetIssueNote>();
-    registry.register::<UpdateIssueNote>();
-    registry.register::<DeleteIssueNote>();
 }

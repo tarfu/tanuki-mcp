@@ -4,7 +4,7 @@ use serde_json::json;
 use tanuki_mcp_macros::gitlab_tool;
 
 use crate::error::ToolError;
-use crate::tools::{ToolContext, ToolExecutor, ToolOutput, ToolRegistry};
+use crate::tools::{ToolContext, ToolExecutor, ToolOutput};
 use async_trait::async_trait;
 
 // ============================================================================
@@ -113,11 +113,4 @@ impl ToolExecutor for DeleteIssueLink {
             "issue_link_id": self.issue_link_id
         }))
     }
-}
-
-/// Register all issue links tools
-pub fn register(registry: &mut ToolRegistry) {
-    registry.register::<ListIssueLinks>();
-    registry.register::<CreateIssueLink>();
-    registry.register::<DeleteIssueLink>();
 }

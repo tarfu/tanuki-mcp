@@ -221,12 +221,3 @@ impl ToolExecutor for DeleteLabel {
         )))
     }
 }
-
-/// Register all label tools
-pub fn register(registry: &mut crate::tools::ToolRegistry) {
-    registry.register::<ListLabels>();
-    registry.register::<GetLabel>();
-    registry.register::<CreateLabel>();
-    registry.register::<UpdateLabel>();
-    registry.register::<DeleteLabel>();
-}

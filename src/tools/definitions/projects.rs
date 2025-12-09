@@ -338,14 +338,3 @@ impl ToolExecutor for ListProjectMembers {
         ToolOutput::json_value(result)
     }
 }
-
-/// Register all project tools
-pub fn register(registry: &mut crate::tools::ToolRegistry) {
-    registry.register::<ListProjects>();
-    registry.register::<GetProject>();
-    registry.register::<CreateProject>();
-    registry.register::<UpdateProject>();
-    registry.register::<DeleteProject>();
-    registry.register::<ForkProject>();
-    registry.register::<ListProjectMembers>();
-}

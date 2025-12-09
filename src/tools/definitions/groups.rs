@@ -226,12 +226,3 @@ impl ToolExecutor for ListSubgroups {
         ToolOutput::json_value(result)
     }
 }
-
-/// Register all group tools
-pub fn register(registry: &mut crate::tools::ToolRegistry) {
-    registry.register::<ListGroups>();
-    registry.register::<GetGroup>();
-    registry.register::<ListGroupMembers>();
-    registry.register::<ListGroupProjects>();
-    registry.register::<ListSubgroups>();
-}

@@ -125,11 +125,3 @@ impl ToolExecutor for GetUserActivities {
         ToolOutput::json_value(result)
     }
 }
-
-/// Register all user tools
-pub fn register(registry: &mut crate::tools::ToolRegistry) {
-    registry.register::<GetCurrentUser>();
-    registry.register::<ListUsers>();
-    registry.register::<GetUser>();
-    registry.register::<GetUserActivities>();
-}

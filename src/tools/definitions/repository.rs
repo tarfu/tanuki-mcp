@@ -334,14 +334,3 @@ impl ToolExecutor for CompareRefs {
         ToolOutput::json_value(result)
     }
 }
-
-/// Register all repository tools
-pub fn register(registry: &mut crate::tools::ToolRegistry) {
-    registry.register::<GetRepositoryFile>();
-    registry.register::<GetRepositoryTree>();
-    registry.register::<CreateOrUpdateFile>();
-    registry.register::<DeleteRepositoryFile>();
-    registry.register::<SearchRepository>();
-    registry.register::<GetFileBlame>();
-    registry.register::<CompareRefs>();
-}

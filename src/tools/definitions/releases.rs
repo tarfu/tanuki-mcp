@@ -309,14 +309,3 @@ impl ToolExecutor for CollectReleaseEvidence {
         ToolOutput::json_value(result)
     }
 }
-
-/// Register all release tools
-pub fn register(registry: &mut crate::tools::ToolRegistry) {
-    registry.register::<ListReleases>();
-    registry.register::<GetRelease>();
-    registry.register::<CreateRelease>();
-    registry.register::<UpdateRelease>();
-    registry.register::<DeleteRelease>();
-    registry.register::<GetReleaseEvidence>();
-    registry.register::<CollectReleaseEvidence>();
-}

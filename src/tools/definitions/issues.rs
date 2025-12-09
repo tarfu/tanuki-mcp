@@ -2,32 +2,32 @@
 //!
 //! Tools for managing GitLab issues.
 
-use crate::access_control::{AccessControlled, OperationType, ToolCategory};
 use crate::error::ToolError;
 use crate::gitlab::GitLabClient;
-use crate::tools::{ToolContext, ToolExecutor, ToolInfo, ToolOutput, ToolRegistry};
+use crate::tools::{ToolContext, ToolExecutor, ToolOutput};
 use crate::util::QueryBuilder;
 use async_trait::async_trait;
+use serde::Serialize;
+use tanuki_mcp_macros::gitlab_tool;
 
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-
-/// Register all issue tools
-pub fn register(registry: &mut ToolRegistry) {
-    registry.register::<ListIssues>();
-    registry.register::<GetIssue>();
-    registry.register::<CreateIssue>();
-    registry.register::<UpdateIssue>();
-    registry.register::<DeleteIssue>();
-    registry.register::<CreateIssueNote>();
+fn default_page() -> u32 {
+    1
+}
+fn default_per_page() -> u32 {
+    20
 }
 
 // ============================================================================
 // list_issues
 // ============================================================================
 
-/// List issues in a project with optional filtering
-#[derive(Debug, Clone, Deserialize, JsonSchema)]
+/// List issues in a GitLab project with optional filtering by state, labels, milestone, assignee, or search terms
+#[gitlab_tool(
+    name = "list_issues",
+    category = "issues",
+    operation = "read",
+    project_field = "project"
+)]
 pub struct ListIssues {
     /// Project ID or URL-encoded path (e.g., "group/project")
     pub project: String,
@@ -65,43 +65,6 @@ pub struct ListIssues {
     pub per_page: u32,
 }
 
-fn default_page() -> u32 {
-    1
-}
-fn default_per_page() -> u32 {
-    20
-}
-
-impl ToolInfo for ListIssues {
-    fn name() -> &'static str {
-        "list_issues"
-    }
-    fn description() -> &'static str {
-        "List issues in a GitLab project with optional filtering by state, labels, milestone, assignee, or search terms"
-    }
-    fn category() -> ToolCategory {
-        ToolCategory::Issues
-    }
-    fn operation_type() -> OperationType {
-        OperationType::Read
-    }
-}
-
-impl AccessControlled for ListIssues {
-    fn tool_name(&self) -> &'static str {
-        "list_issues"
-    }
-    fn category(&self) -> ToolCategory {
-        ToolCategory::Issues
-    }
-    fn operation_type(&self) -> OperationType {
-        OperationType::Read
-    }
-    fn extract_project(&self) -> Option<String> {
-        Some(self.project.clone())
-    }
-}
-
 #[async_trait]
 impl ToolExecutor for ListIssues {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
@@ -127,44 +90,19 @@ impl ToolExecutor for ListIssues {
 // get_issue
 // ============================================================================
 
-/// Get details of a specific issue
-#[derive(Debug, Clone, Deserialize, JsonSchema)]
+/// Get detailed information about a specific issue by its IID
+#[gitlab_tool(
+    name = "get_issue",
+    category = "issues",
+    operation = "read",
+    project_field = "project"
+)]
 pub struct GetIssue {
     /// Project ID or URL-encoded path
     pub project: String,
 
     /// Issue IID (internal ID within the project)
     pub issue_iid: u64,
-}
-
-impl ToolInfo for GetIssue {
-    fn name() -> &'static str {
-        "get_issue"
-    }
-    fn description() -> &'static str {
-        "Get detailed information about a specific issue by its IID"
-    }
-    fn category() -> ToolCategory {
-        ToolCategory::Issues
-    }
-    fn operation_type() -> OperationType {
-        OperationType::Read
-    }
-}
-
-impl AccessControlled for GetIssue {
-    fn tool_name(&self) -> &'static str {
-        "get_issue"
-    }
-    fn category(&self) -> ToolCategory {
-        ToolCategory::Issues
-    }
-    fn operation_type(&self) -> OperationType {
-        OperationType::Read
-    }
-    fn extract_project(&self) -> Option<String> {
-        Some(self.project.clone())
-    }
 }
 
 #[async_trait]
@@ -182,8 +120,13 @@ impl ToolExecutor for GetIssue {
 // create_issue
 // ============================================================================
 
-/// Create a new issue in a project
-#[derive(Debug, Clone, Deserialize, JsonSchema)]
+/// Create a new issue in a GitLab project
+#[gitlab_tool(
+    name = "create_issue",
+    category = "issues",
+    operation = "write",
+    project_field = "project"
+)]
 pub struct CreateIssue {
     /// Project ID or URL-encoded path
     pub project: String,
@@ -214,36 +157,6 @@ pub struct CreateIssue {
     /// Whether the issue is confidential
     #[serde(default)]
     pub confidential: Option<bool>,
-}
-
-impl ToolInfo for CreateIssue {
-    fn name() -> &'static str {
-        "create_issue"
-    }
-    fn description() -> &'static str {
-        "Create a new issue in a GitLab project"
-    }
-    fn category() -> ToolCategory {
-        ToolCategory::Issues
-    }
-    fn operation_type() -> OperationType {
-        OperationType::Write
-    }
-}
-
-impl AccessControlled for CreateIssue {
-    fn tool_name(&self) -> &'static str {
-        "create_issue"
-    }
-    fn category(&self) -> ToolCategory {
-        ToolCategory::Issues
-    }
-    fn operation_type(&self) -> OperationType {
-        OperationType::Write
-    }
-    fn extract_project(&self) -> Option<String> {
-        Some(self.project.clone())
-    }
 }
 
 #[async_trait]
@@ -288,8 +201,13 @@ impl ToolExecutor for CreateIssue {
 // update_issue
 // ============================================================================
 
-/// Update an existing issue
-#[derive(Debug, Clone, Deserialize, JsonSchema)]
+/// Update an existing issue's title, description, state, labels, or other properties
+#[gitlab_tool(
+    name = "update_issue",
+    category = "issues",
+    operation = "write",
+    project_field = "project"
+)]
 pub struct UpdateIssue {
     /// Project ID or URL-encoded path
     pub project: String,
@@ -328,36 +246,6 @@ pub struct UpdateIssue {
     /// Update confidentiality
     #[serde(default)]
     pub confidential: Option<bool>,
-}
-
-impl ToolInfo for UpdateIssue {
-    fn name() -> &'static str {
-        "update_issue"
-    }
-    fn description() -> &'static str {
-        "Update an existing issue's title, description, state, labels, or other properties"
-    }
-    fn category() -> ToolCategory {
-        ToolCategory::Issues
-    }
-    fn operation_type() -> OperationType {
-        OperationType::Write
-    }
-}
-
-impl AccessControlled for UpdateIssue {
-    fn tool_name(&self) -> &'static str {
-        "update_issue"
-    }
-    fn category(&self) -> ToolCategory {
-        ToolCategory::Issues
-    }
-    fn operation_type(&self) -> OperationType {
-        OperationType::Write
-    }
-    fn extract_project(&self) -> Option<String> {
-        Some(self.project.clone())
-    }
 }
 
 #[async_trait]
@@ -406,44 +294,19 @@ impl ToolExecutor for UpdateIssue {
 // delete_issue
 // ============================================================================
 
-/// Delete an issue
-#[derive(Debug, Clone, Deserialize, JsonSchema)]
+/// Delete an issue from a project (requires maintainer or owner permissions)
+#[gitlab_tool(
+    name = "delete_issue",
+    category = "issues",
+    operation = "delete",
+    project_field = "project"
+)]
 pub struct DeleteIssue {
     /// Project ID or URL-encoded path
     pub project: String,
 
     /// Issue IID
     pub issue_iid: u64,
-}
-
-impl ToolInfo for DeleteIssue {
-    fn name() -> &'static str {
-        "delete_issue"
-    }
-    fn description() -> &'static str {
-        "Delete an issue from a project (requires maintainer or owner permissions)"
-    }
-    fn category() -> ToolCategory {
-        ToolCategory::Issues
-    }
-    fn operation_type() -> OperationType {
-        OperationType::Delete
-    }
-}
-
-impl AccessControlled for DeleteIssue {
-    fn tool_name(&self) -> &'static str {
-        "delete_issue"
-    }
-    fn category(&self) -> ToolCategory {
-        ToolCategory::Issues
-    }
-    fn operation_type(&self) -> OperationType {
-        OperationType::Delete
-    }
-    fn extract_project(&self) -> Option<String> {
-        Some(self.project.clone())
-    }
 }
 
 #[async_trait]
@@ -457,79 +320,5 @@ impl ToolExecutor for DeleteIssue {
             "success": true,
             "message": format!("Issue #{} deleted", self.issue_iid)
         }))
-    }
-}
-
-// ============================================================================
-// create_issue_note
-// ============================================================================
-
-/// Add a comment/note to an issue
-#[derive(Debug, Clone, Deserialize, JsonSchema)]
-pub struct CreateIssueNote {
-    /// Project ID or URL-encoded path
-    pub project: String,
-
-    /// Issue IID
-    pub issue_iid: u64,
-
-    /// Note body (Markdown supported)
-    pub body: String,
-
-    /// Whether this is a confidential note
-    #[serde(default)]
-    pub confidential: Option<bool>,
-}
-
-impl ToolInfo for CreateIssueNote {
-    fn name() -> &'static str {
-        "create_issue_note"
-    }
-    fn description() -> &'static str {
-        "Add a comment/note to an issue"
-    }
-    fn category() -> ToolCategory {
-        ToolCategory::IssueNotes
-    }
-    fn operation_type() -> OperationType {
-        OperationType::Write
-    }
-}
-
-impl AccessControlled for CreateIssueNote {
-    fn tool_name(&self) -> &'static str {
-        "create_issue_note"
-    }
-    fn category(&self) -> ToolCategory {
-        ToolCategory::IssueNotes
-    }
-    fn operation_type(&self) -> OperationType {
-        OperationType::Write
-    }
-    fn extract_project(&self) -> Option<String> {
-        Some(self.project.clone())
-    }
-}
-
-#[async_trait]
-impl ToolExecutor for CreateIssueNote {
-    async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
-        let project = GitLabClient::encode_project(&self.project);
-        let endpoint = format!("/projects/{}/issues/{}/notes", project, self.issue_iid);
-
-        #[derive(Serialize)]
-        struct CreateNoteRequest<'a> {
-            body: &'a str,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            confidential: Option<bool>,
-        }
-
-        let body = CreateNoteRequest {
-            body: &self.body,
-            confidential: self.confidential,
-        };
-
-        let response: serde_json::Value = ctx.gitlab.post(&endpoint, &body).await?;
-        ToolOutput::json_value(response)
     }
 }

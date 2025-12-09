@@ -118,10 +118,3 @@ impl ToolExecutor for NamespaceExists {
         ToolOutput::json_value(result)
     }
 }
-
-/// Register all namespace tools
-pub fn register(registry: &mut crate::tools::ToolRegistry) {
-    registry.register::<ListNamespaces>();
-    registry.register::<GetNamespace>();
-    registry.register::<NamespaceExists>();
-}

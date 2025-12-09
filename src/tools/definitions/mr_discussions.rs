@@ -303,14 +303,3 @@ impl ToolExecutor for ResolveMrDiscussion {
         ToolOutput::json_value(result)
     }
 }
-
-/// Register all MR discussion tools
-pub fn register(registry: &mut crate::tools::ToolRegistry) {
-    registry.register::<ListMrDiscussions>();
-    registry.register::<GetMrDiscussion>();
-    registry.register::<CreateMrDiscussion>();
-    registry.register::<AddMrDiscussionNote>();
-    registry.register::<UpdateMrDiscussionNote>();
-    registry.register::<DeleteMrDiscussionNote>();
-    registry.register::<ResolveMrDiscussion>();
-}

@@ -288,14 +288,3 @@ impl ToolExecutor for RevertCommit {
         ToolOutput::json_value(result)
     }
 }
-
-/// Register all commit tools
-pub fn register(registry: &mut crate::tools::ToolRegistry) {
-    registry.register::<ListCommits>();
-    registry.register::<GetCommit>();
-    registry.register::<GetCommitDiff>();
-    registry.register::<GetCommitComments>();
-    registry.register::<CreateCommitComment>();
-    registry.register::<CherryPickCommit>();
-    registry.register::<RevertCommit>();
-}

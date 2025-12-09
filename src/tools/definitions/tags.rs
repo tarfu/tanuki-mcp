@@ -278,15 +278,3 @@ impl ToolExecutor for UnprotectTag {
         )))
     }
 }
-
-/// Register all tag tools
-pub fn register(registry: &mut crate::tools::ToolRegistry) {
-    registry.register::<ListTags>();
-    registry.register::<GetTag>();
-    registry.register::<CreateTag>();
-    registry.register::<DeleteTag>();
-    registry.register::<ListProtectedTags>();
-    registry.register::<GetProtectedTag>();
-    registry.register::<ProtectTag>();
-    registry.register::<UnprotectTag>();
-}
