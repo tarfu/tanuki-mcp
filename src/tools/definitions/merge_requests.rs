@@ -6,6 +6,7 @@ use crate::access_control::{AccessControlled, OperationType, ToolCategory};
 use crate::error::ToolError;
 use crate::gitlab::GitLabClient;
 use crate::tools::{ToolContext, ToolExecutor, ToolInfo, ToolOutput, ToolRegistry};
+use crate::util::QueryBuilder;
 use async_trait::async_trait;
 
 use schemars::JsonSchema;
@@ -113,38 +114,20 @@ impl AccessControlled for ListMergeRequests {
 impl ToolExecutor for ListMergeRequests {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let project = GitLabClient::encode_project(&self.project);
-        let mut endpoint = format!(
-            "/projects/{}/merge_requests?page={}&per_page={}",
-            project,
-            self.page,
-            self.per_page.min(100)
-        );
+        let query = QueryBuilder::new()
+            .param("page", self.page)
+            .param("per_page", self.per_page.min(100))
+            .optional("state", self.state.as_ref())
+            .optional_encoded("source_branch", self.source_branch.as_ref())
+            .optional_encoded("target_branch", self.target_branch.as_ref())
+            .optional_encoded("labels", self.labels.as_ref())
+            .optional_encoded("milestone", self.milestone.as_ref())
+            .optional("author_id", self.author_id)
+            .optional("assignee_id", self.assignee_id)
+            .optional_encoded("search", self.search.as_ref())
+            .build();
 
-        if let Some(state) = &self.state {
-            endpoint.push_str(&format!("&state={}", state));
-        }
-        if let Some(source) = &self.source_branch {
-            endpoint.push_str(&format!("&source_branch={}", urlencoding::encode(source)));
-        }
-        if let Some(target) = &self.target_branch {
-            endpoint.push_str(&format!("&target_branch={}", urlencoding::encode(target)));
-        }
-        if let Some(labels) = &self.labels {
-            endpoint.push_str(&format!("&labels={}", urlencoding::encode(labels)));
-        }
-        if let Some(milestone) = &self.milestone {
-            endpoint.push_str(&format!("&milestone={}", urlencoding::encode(milestone)));
-        }
-        if let Some(author_id) = self.author_id {
-            endpoint.push_str(&format!("&author_id={}", author_id));
-        }
-        if let Some(assignee_id) = self.assignee_id {
-            endpoint.push_str(&format!("&assignee_id={}", assignee_id));
-        }
-        if let Some(search) = &self.search {
-            endpoint.push_str(&format!("&search={}", urlencoding::encode(search)));
-        }
-
+        let endpoint = format!("/projects/{}/merge_requests{}", project, query);
         let response: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
         ToolOutput::json_value(response)
     }
@@ -671,18 +654,16 @@ impl AccessControlled for GetMergeRequestDiffs {
 impl ToolExecutor for GetMergeRequestDiffs {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let project = GitLabClient::encode_project(&self.project);
-        let mut endpoint = format!(
-            "/projects/{}/merge_requests/{}/diffs?page={}&per_page={}",
-            project,
-            self.merge_request_iid,
-            self.page,
-            self.per_page.min(100)
+        let query = QueryBuilder::new()
+            .param("page", self.page)
+            .param("per_page", self.per_page.min(100))
+            .optional("unidiff", self.unidiff.filter(|&b| b).map(|_| "true"))
+            .build();
+
+        let endpoint = format!(
+            "/projects/{}/merge_requests/{}/diffs{}",
+            project, self.merge_request_iid, query
         );
-
-        if self.unidiff == Some(true) {
-            endpoint.push_str("&unidiff=true");
-        }
-
         let response: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
         ToolOutput::json_value(response)
     }

@@ -5,6 +5,7 @@
 use crate::error::ToolError;
 use crate::gitlab::GitLabClient;
 use crate::tools::executor::{ToolContext, ToolExecutor, ToolOutput};
+use crate::util::QueryBuilder;
 use async_trait::async_trait;
 
 use schemars::JsonSchema;
@@ -48,39 +49,18 @@ pub struct ListPipelines {
 impl ToolExecutor for ListPipelines {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let project = GitLabClient::encode_project(&self.project);
-        let mut params = Vec::new();
-
-        if let Some(ref status) = self.status {
-            params.push(format!("status={}", status));
-        }
-        if let Some(ref ref_name) = self.ref_name {
-            params.push(format!("ref={}", urlencoding::encode(ref_name)));
-        }
-        if let Some(ref sha) = self.sha {
-            params.push(format!("sha={}", sha));
-        }
-        if let Some(ref username) = self.username {
-            params.push(format!("username={}", urlencoding::encode(username)));
-        }
-        if let Some(ref sort) = self.sort {
-            params.push(format!("sort={}", sort));
-        }
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let query = if params.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", params.join("&"))
-        };
+        let query = QueryBuilder::new()
+            .optional("status", self.status.as_ref())
+            .optional_encoded("ref", self.ref_name.as_ref())
+            .optional("sha", self.sha.as_ref())
+            .optional_encoded("username", self.username.as_ref())
+            .optional("sort", self.sort.as_ref())
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
         let endpoint = format!("/projects/{}/pipelines{}", project, query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }
@@ -271,32 +251,24 @@ pub struct ListPipelineJobs {
 impl ToolExecutor for ListPipelineJobs {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let project = GitLabClient::encode_project(&self.project);
-        let mut params = Vec::new();
+        let mut query = QueryBuilder::new()
+            .optional("include_retried", self.include_retried.then_some("true"))
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .build();
 
-        if self.include_retried {
-            params.push("include_retried=true".to_string());
-        }
+        // Handle scope[] array parameters manually since QueryBuilder doesn't support arrays
         if let Some(ref scopes) = self.scope {
             for scope in scopes {
-                params.push(format!("scope[]={}", scope));
+                let sep = if query.is_empty() { "?" } else { "&" };
+                query.push_str(&format!("{}scope[]={}", sep, scope));
             }
         }
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-
-        let query = if params.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", params.join("&"))
-        };
 
         let endpoint = format!(
             "/projects/{}/pipelines/{}/jobs{}",
             project, self.pipeline_id, query
         );
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }

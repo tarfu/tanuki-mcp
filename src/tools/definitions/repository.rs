@@ -5,6 +5,7 @@
 use crate::error::ToolError;
 use crate::gitlab::GitLabClient;
 use crate::tools::executor::{ToolContext, ToolExecutor, ToolOutput};
+use crate::util::QueryBuilder;
 use async_trait::async_trait;
 
 use base64::Engine;
@@ -91,33 +92,16 @@ pub struct GetRepositoryTree {
 impl ToolExecutor for GetRepositoryTree {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let project = GitLabClient::encode_project(&self.project);
-        let mut params = Vec::new();
-
-        if let Some(ref path) = self.path {
-            params.push(format!("path={}", urlencoding::encode(path)));
-        }
-        if let Some(ref ref_name) = self.ref_name {
-            params.push(format!("ref={}", urlencoding::encode(ref_name)));
-        }
-        if self.recursive {
-            params.push("recursive=true".to_string());
-        }
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let query = if params.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", params.join("&"))
-        };
+        let query = QueryBuilder::new()
+            .optional_encoded("path", self.path.as_ref())
+            .optional_encoded("ref", self.ref_name.as_ref())
+            .optional("recursive", self.recursive.then_some("true"))
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
         let endpoint = format!("/projects/{}/repository/tree{}", project, query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }
@@ -265,26 +249,16 @@ pub struct SearchRepository {
 impl ToolExecutor for SearchRepository {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let project = GitLabClient::encode_project(&self.project);
-        let mut params = vec![format!("search={}", urlencoding::encode(&self.search))];
+        let query = QueryBuilder::new()
+            .param("scope", "blobs")
+            .param("search", urlencoding::encode(&self.search))
+            .optional_encoded("ref", self.ref_name.as_ref())
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
-        if let Some(ref ref_name) = self.ref_name {
-            params.push(format!("ref={}", urlencoding::encode(ref_name)));
-        }
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let endpoint = format!(
-            "/projects/{}/search?scope=blobs&{}",
-            project,
-            params.join("&")
-        );
-
+        let endpoint = format!("/projects/{}/search{}", project, query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }
@@ -349,23 +323,14 @@ pub struct CompareRefs {
 impl ToolExecutor for CompareRefs {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let project = GitLabClient::encode_project(&self.project);
-        let mut params = vec![
-            format!("from={}", urlencoding::encode(&self.from)),
-            format!("to={}", urlencoding::encode(&self.to)),
-        ];
+        let query = QueryBuilder::new()
+            .param("from", urlencoding::encode(&self.from))
+            .param("to", urlencoding::encode(&self.to))
+            .optional("straight", self.straight.then_some("true"))
+            .build();
 
-        if self.straight {
-            params.push("straight=true".to_string());
-        }
-
-        let endpoint = format!(
-            "/projects/{}/repository/compare?{}",
-            project,
-            params.join("&")
-        );
-
+        let endpoint = format!("/projects/{}/repository/compare{}", project, query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }

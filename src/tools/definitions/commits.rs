@@ -5,6 +5,7 @@
 use crate::error::ToolError;
 use crate::gitlab::GitLabClient;
 use crate::tools::executor::{ToolContext, ToolExecutor, ToolOutput};
+use crate::util::QueryBuilder;
 use async_trait::async_trait;
 
 use tanuki_mcp_macros::gitlab_tool;
@@ -46,39 +47,18 @@ pub struct ListCommits {
 impl ToolExecutor for ListCommits {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let project = GitLabClient::encode_project(&self.project);
-        let mut params = Vec::new();
-
-        if let Some(ref ref_name) = self.ref_name {
-            params.push(format!("ref_name={}", urlencoding::encode(ref_name)));
-        }
-        if let Some(ref path) = self.path {
-            params.push(format!("path={}", urlencoding::encode(path)));
-        }
-        if let Some(ref since) = self.since {
-            params.push(format!("since={}", urlencoding::encode(since)));
-        }
-        if let Some(ref until) = self.until {
-            params.push(format!("until={}", urlencoding::encode(until)));
-        }
-        if self.with_stats {
-            params.push("with_stats=true".to_string());
-        }
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let query = if params.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", params.join("&"))
-        };
+        let query = QueryBuilder::new()
+            .optional_encoded("ref_name", self.ref_name.as_ref())
+            .optional_encoded("path", self.path.as_ref())
+            .optional_encoded("since", self.since.as_ref())
+            .optional_encoded("until", self.until.as_ref())
+            .optional("with_stats", self.with_stats.then_some("true"))
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
         let endpoint = format!("/projects/{}/repository/commits{}", project, query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }
@@ -104,14 +84,14 @@ pub struct GetCommit {
 impl ToolExecutor for GetCommit {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let project = GitLabClient::encode_project(&self.project);
-        let mut endpoint = format!("/projects/{}/repository/commits/{}", project, self.sha);
-
-        if self.stats {
-            endpoint.push_str("?stats=true");
-        }
-
+        let query = QueryBuilder::new()
+            .optional("stats", self.stats.then_some("true"))
+            .build();
+        let endpoint = format!(
+            "/projects/{}/repository/commits/{}{}",
+            project, self.sha, query
+        );
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }

@@ -1,8 +1,81 @@
 //! Utility functions shared across the application.
 
+use std::fmt::Display;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tracing::warn;
+
+/// Builder for URL query parameters.
+///
+/// Provides a fluent API for constructing query strings with proper URL encoding.
+///
+/// # Example
+/// ```ignore
+/// let query = QueryBuilder::new()
+///     .param("page", "1")
+///     .optional("state", Some("open"))
+///     .optional("labels", None::<&str>)
+///     .build();
+/// // Returns "?page=1&state=open"
+/// ```
+#[derive(Default)]
+pub struct QueryBuilder {
+    params: Vec<(String, String)>,
+}
+
+impl QueryBuilder {
+    /// Create a new empty query builder.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Add a required parameter (always included).
+    pub fn param(mut self, key: &str, value: impl Display) -> Self {
+        self.params.push((
+            key.to_string(),
+            urlencoding::encode(&value.to_string()).into_owned(),
+        ));
+        self
+    }
+
+    /// Add an optional parameter (only included if Some).
+    pub fn optional<T: Display>(self, key: &str, value: Option<T>) -> Self {
+        match value {
+            Some(v) => self.param(key, v),
+            None => self,
+        }
+    }
+
+    /// Add an optional parameter with URL encoding.
+    pub fn optional_encoded<T: AsRef<str>>(mut self, key: &str, value: Option<T>) -> Self {
+        if let Some(v) = value {
+            self.params.push((
+                key.to_string(),
+                urlencoding::encode(v.as_ref()).into_owned(),
+            ));
+        }
+        self
+    }
+
+    /// Build the query string.
+    ///
+    /// Returns an empty string if no parameters were added,
+    /// otherwise returns "?key1=value1&key2=value2...".
+    pub fn build(self) -> String {
+        if self.params.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "?{}",
+                self.params
+                    .into_iter()
+                    .map(|(k, v)| format!("{k}={v}"))
+                    .collect::<Vec<_>>()
+                    .join("&")
+            )
+        }
+    }
+}
 
 /// Verify that a specific port is available, failing if it is not.
 ///

@@ -5,6 +5,7 @@
 use crate::error::ToolError;
 use crate::gitlab::GitLabClient;
 use crate::tools::executor::{ToolContext, ToolExecutor, ToolOutput};
+use crate::util::QueryBuilder;
 use async_trait::async_trait;
 
 use tanuki_mcp_macros::gitlab_tool;
@@ -38,27 +39,17 @@ pub struct SearchGlobal {
 #[async_trait]
 impl ToolExecutor for SearchGlobal {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
-        let mut params = vec![
-            format!("scope={}", urlencoding::encode(&self.scope)),
-            format!("search={}", urlencoding::encode(&self.search)),
-        ];
+        let query = QueryBuilder::new()
+            .param("scope", urlencoding::encode(&self.scope))
+            .param("search", urlencoding::encode(&self.search))
+            .optional_encoded("state", self.state.as_ref())
+            .optional("confidential", self.confidential)
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
-        if let Some(ref state) = self.state {
-            params.push(format!("state={}", urlencoding::encode(state)));
-        }
-        if let Some(confidential) = self.confidential {
-            params.push(format!("confidential={}", confidential));
-        }
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let endpoint = format!("/search?{}", params.join("&"));
+        let endpoint = format!("/search{}", query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }
@@ -99,30 +90,18 @@ pub struct SearchProject {
 impl ToolExecutor for SearchProject {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let project = GitLabClient::encode_project(&self.project);
-        let mut params = vec![
-            format!("scope={}", urlencoding::encode(&self.scope)),
-            format!("search={}", urlencoding::encode(&self.search)),
-        ];
+        let query = QueryBuilder::new()
+            .param("scope", urlencoding::encode(&self.scope))
+            .param("search", urlencoding::encode(&self.search))
+            .optional_encoded("ref", self.ref_name.as_ref())
+            .optional_encoded("state", self.state.as_ref())
+            .optional("confidential", self.confidential)
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
-        if let Some(ref ref_name) = self.ref_name {
-            params.push(format!("ref={}", urlencoding::encode(ref_name)));
-        }
-        if let Some(ref state) = self.state {
-            params.push(format!("state={}", urlencoding::encode(state)));
-        }
-        if let Some(confidential) = self.confidential {
-            params.push(format!("confidential={}", confidential));
-        }
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let endpoint = format!("/projects/{}/search?{}", project, params.join("&"));
+        let endpoint = format!("/projects/{}/search{}", project, query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }
@@ -159,27 +138,17 @@ pub struct SearchGroup {
 impl ToolExecutor for SearchGroup {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let group = urlencoding::encode(&self.group);
-        let mut params = vec![
-            format!("scope={}", urlencoding::encode(&self.scope)),
-            format!("search={}", urlencoding::encode(&self.search)),
-        ];
+        let query = QueryBuilder::new()
+            .param("scope", urlencoding::encode(&self.scope))
+            .param("search", urlencoding::encode(&self.search))
+            .optional_encoded("state", self.state.as_ref())
+            .optional("confidential", self.confidential)
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
-        if let Some(ref state) = self.state {
-            params.push(format!("state={}", urlencoding::encode(state)));
-        }
-        if let Some(confidential) = self.confidential {
-            params.push(format!("confidential={}", confidential));
-        }
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let endpoint = format!("/groups/{}/search?{}", group, params.join("&"));
+        let endpoint = format!("/groups/{}/search{}", group, query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }

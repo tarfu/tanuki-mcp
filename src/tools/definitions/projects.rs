@@ -5,6 +5,7 @@
 use crate::error::ToolError;
 use crate::gitlab::GitLabClient;
 use crate::tools::executor::{ToolContext, ToolExecutor, ToolOutput};
+use crate::util::QueryBuilder;
 use async_trait::async_trait;
 
 use tanuki_mcp_macros::gitlab_tool;
@@ -52,48 +53,21 @@ pub struct ListProjects {
 #[async_trait]
 impl ToolExecutor for ListProjects {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
-        let mut params = Vec::new();
-
-        if let Some(ref search) = self.search {
-            params.push(format!("search={}", urlencoding::encode(search)));
-        }
-        if let Some(ref visibility) = self.visibility {
-            params.push(format!("visibility={}", visibility));
-        }
-        if let Some(archived) = self.archived {
-            params.push(format!("archived={}", archived));
-        }
-        if self.owned {
-            params.push("owned=true".to_string());
-        }
-        if self.membership {
-            params.push("membership=true".to_string());
-        }
-        if self.statistics {
-            params.push("statistics=true".to_string());
-        }
-        if let Some(ref order_by) = self.order_by {
-            params.push(format!("order_by={}", order_by));
-        }
-        if let Some(ref sort) = self.sort {
-            params.push(format!("sort={}", sort));
-        }
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let query = if params.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", params.join("&"))
-        };
+        let query = QueryBuilder::new()
+            .optional_encoded("search", self.search.as_ref())
+            .optional("visibility", self.visibility.as_ref())
+            .optional("archived", self.archived)
+            .optional("owned", self.owned.then_some("true"))
+            .optional("membership", self.membership.then_some("true"))
+            .optional("statistics", self.statistics.then_some("true"))
+            .optional("order_by", self.order_by.as_ref())
+            .optional("sort", self.sort.as_ref())
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
         let endpoint = format!("/projects{}", query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }
@@ -120,24 +94,13 @@ pub struct GetProject {
 impl ToolExecutor for GetProject {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let project = GitLabClient::encode_project(&self.project);
-        let mut params = Vec::new();
-
-        if self.statistics {
-            params.push("statistics=true".to_string());
-        }
-        if self.license {
-            params.push("license=true".to_string());
-        }
-
-        let query = if params.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", params.join("&"))
-        };
+        let query = QueryBuilder::new()
+            .optional("statistics", self.statistics.then_some("true"))
+            .optional("license", self.license.then_some("true"))
+            .build();
 
         let endpoint = format!("/projects/{}{}", project, query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }
@@ -364,27 +327,14 @@ pub struct ListProjectMembers {
 impl ToolExecutor for ListProjectMembers {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let project = GitLabClient::encode_project(&self.project);
-        let mut params = Vec::new();
+        let query_str = QueryBuilder::new()
+            .optional_encoded("query", self.query.as_ref())
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
-        if let Some(ref query) = self.query {
-            params.push(format!("query={}", urlencoding::encode(query)));
-        }
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let query = if params.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", params.join("&"))
-        };
-
-        let endpoint = format!("/projects/{}/members{}", project, query);
+        let endpoint = format!("/projects/{}/members{}", project, query_str);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }

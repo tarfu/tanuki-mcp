@@ -5,6 +5,7 @@
 use crate::error::ToolError;
 use crate::gitlab::GitLabClient;
 use crate::tools::executor::{ToolContext, ToolExecutor, ToolOutput};
+use crate::util::QueryBuilder;
 use async_trait::async_trait;
 
 use tanuki_mcp_macros::gitlab_tool;
@@ -40,33 +41,16 @@ pub struct ListTags {
 impl ToolExecutor for ListTags {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let project = GitLabClient::encode_project(&self.project);
-        let mut params = Vec::new();
-
-        if let Some(ref order_by) = self.order_by {
-            params.push(format!("order_by={}", urlencoding::encode(order_by)));
-        }
-        if let Some(ref sort) = self.sort {
-            params.push(format!("sort={}", urlencoding::encode(sort)));
-        }
-        if let Some(ref search) = self.search {
-            params.push(format!("search={}", urlencoding::encode(search)));
-        }
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let query = if params.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", params.join("&"))
-        };
+        let query = QueryBuilder::new()
+            .optional_encoded("order_by", self.order_by.as_ref())
+            .optional_encoded("sort", self.sort.as_ref())
+            .optional_encoded("search", self.search.as_ref())
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
         let endpoint = format!("/projects/{}/repository/tags{}", project, query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }
@@ -190,24 +174,13 @@ pub struct ListProtectedTags {
 impl ToolExecutor for ListProtectedTags {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let project = GitLabClient::encode_project(&self.project);
-        let mut params = Vec::new();
-
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let query = if params.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", params.join("&"))
-        };
+        let query = QueryBuilder::new()
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
         let endpoint = format!("/projects/{}/protected_tags{}", project, query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }

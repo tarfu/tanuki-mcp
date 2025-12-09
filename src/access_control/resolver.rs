@@ -82,7 +82,7 @@ impl AccessResolver {
         // Compile category configurations
         let mut categories = HashMap::new();
         for (name, cat_config) in &config.categories {
-            if let Some(category) = ToolCategory::from_str(name) {
+            if let Some(category) = ToolCategory::try_parse(name) {
                 categories.insert(category, Self::compile_category(cat_config)?);
             } else {
                 return Err(ConfigError::Invalid {
@@ -118,7 +118,7 @@ impl AccessResolver {
     fn compile_project(config: &ProjectAccessConfig) -> Result<ProjectConfig, ConfigError> {
         let mut categories = HashMap::new();
         for (name, cat_config) in &config.categories {
-            if let Some(category) = ToolCategory::from_str(name) {
+            if let Some(category) = ToolCategory::try_parse(name) {
                 categories.insert(category, Self::compile_category(cat_config)?);
             }
         }
@@ -725,8 +725,10 @@ mod tests {
 
         // Production has a project-level category override for issues to be read-only
         // and an action override to allow notes
-        let mut prod_config = ProjectAccessConfig::default();
-        prod_config.all = Some(AccessLevel::Read);
+        let mut prod_config = ProjectAccessConfig {
+            all: Some(AccessLevel::Read),
+            ..Default::default()
+        };
         // Add project-specific category to override global issues=full
         prod_config.categories.insert(
             "issues".to_string(),

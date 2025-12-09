@@ -61,7 +61,7 @@ impl ToolCategory {
     }
 
     /// Try to parse a category from a string
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn try_parse(s: &str) -> Option<Self> {
         match s {
             "issues" => Some(ToolCategory::Issues),
             "issue_links" => Some(ToolCategory::IssueLinks),
@@ -188,7 +188,7 @@ mod tests {
     fn test_category_roundtrip() {
         for category in ToolCategory::all() {
             let s = category.as_str();
-            let parsed = ToolCategory::from_str(s).unwrap();
+            let parsed = ToolCategory::try_parse(s).unwrap();
             assert_eq!(*category, parsed);
         }
     }

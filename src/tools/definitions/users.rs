@@ -4,6 +4,7 @@
 
 use crate::error::ToolError;
 use crate::tools::executor::{ToolContext, ToolExecutor, ToolOutput};
+use crate::util::QueryBuilder;
 use async_trait::async_trait;
 
 use tanuki_mcp_macros::gitlab_tool;
@@ -56,36 +57,17 @@ pub struct ListUsers {
 #[async_trait]
 impl ToolExecutor for ListUsers {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
-        let mut params = Vec::new();
-
-        if let Some(ref search) = self.search {
-            params.push(format!("search={}", urlencoding::encode(search)));
-        }
-        if let Some(ref username) = self.username {
-            params.push(format!("username={}", urlencoding::encode(username)));
-        }
-        if let Some(active) = self.active {
-            params.push(format!("active={}", active));
-        }
-        if let Some(blocked) = self.blocked {
-            params.push(format!("blocked={}", blocked));
-        }
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let query = if params.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", params.join("&"))
-        };
+        let query = QueryBuilder::new()
+            .optional_encoded("search", self.search.as_ref())
+            .optional_encoded("username", self.username.as_ref())
+            .optional("active", self.active)
+            .optional("blocked", self.blocked)
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
         let endpoint = format!("/users{}", query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }
@@ -133,24 +115,13 @@ pub struct GetUserActivities {
 #[async_trait]
 impl ToolExecutor for GetUserActivities {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
-        let mut params = Vec::new();
-
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let query = if params.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", params.join("&"))
-        };
+        let query = QueryBuilder::new()
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
         let endpoint = format!("/users/{}/events{}", self.user_id, query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }

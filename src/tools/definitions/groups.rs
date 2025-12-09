@@ -5,6 +5,7 @@
 use crate::error::ToolError;
 use crate::gitlab::GitLabClient;
 use crate::tools::executor::{ToolContext, ToolExecutor, ToolOutput};
+use crate::util::QueryBuilder;
 use async_trait::async_trait;
 
 use tanuki_mcp_macros::gitlab_tool;
@@ -46,42 +47,19 @@ pub struct ListGroups {
 #[async_trait]
 impl ToolExecutor for ListGroups {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
-        let mut params = Vec::new();
-
-        if let Some(ref search) = self.search {
-            params.push(format!("search={}", urlencoding::encode(search)));
-        }
-        if self.owned {
-            params.push("owned=true".to_string());
-        }
-        if let Some(ref visibility) = self.visibility {
-            params.push(format!("visibility={}", visibility));
-        }
-        if self.statistics {
-            params.push("statistics=true".to_string());
-        }
-        if let Some(ref order_by) = self.order_by {
-            params.push(format!("order_by={}", order_by));
-        }
-        if let Some(ref sort) = self.sort {
-            params.push(format!("sort={}", sort));
-        }
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let query = if params.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", params.join("&"))
-        };
+        let query = QueryBuilder::new()
+            .optional_encoded("search", self.search.as_ref())
+            .optional("owned", self.owned.then_some("true"))
+            .optional("visibility", self.visibility.as_ref())
+            .optional("statistics", self.statistics.then_some("true"))
+            .optional("order_by", self.order_by.as_ref())
+            .optional("sort", self.sort.as_ref())
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
         let endpoint = format!("/groups{}", query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }
@@ -108,24 +86,13 @@ pub struct GetGroup {
 impl ToolExecutor for GetGroup {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let group = GitLabClient::encode_project(&self.group);
-        let mut params = Vec::new();
-
-        if self.statistics {
-            params.push("statistics=true".to_string());
-        }
-        if self.with_projects {
-            params.push("with_projects=true".to_string());
-        }
-
-        let query = if params.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", params.join("&"))
-        };
+        let query = QueryBuilder::new()
+            .optional("statistics", self.statistics.then_some("true"))
+            .optional("with_projects", self.with_projects.then_some("true"))
+            .build();
 
         let endpoint = format!("/groups/{}{}", group, query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }
@@ -155,27 +122,14 @@ pub struct ListGroupMembers {
 impl ToolExecutor for ListGroupMembers {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let group = GitLabClient::encode_project(&self.group);
-        let mut params = Vec::new();
+        let query_str = QueryBuilder::new()
+            .optional_encoded("query", self.query.as_ref())
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
-        if let Some(ref query) = self.query {
-            params.push(format!("query={}", urlencoding::encode(query)));
-        }
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let query = if params.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", params.join("&"))
-        };
-
-        let endpoint = format!("/groups/{}/members{}", group, query);
+        let endpoint = format!("/groups/{}/members{}", group, query_str);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }
@@ -214,36 +168,20 @@ pub struct ListGroupProjects {
 impl ToolExecutor for ListGroupProjects {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let group = GitLabClient::encode_project(&self.group);
-        let mut params = Vec::new();
-
-        if self.include_subgroups {
-            params.push("include_subgroups=true".to_string());
-        }
-        if let Some(archived) = self.archived {
-            params.push(format!("archived={}", archived));
-        }
-        if let Some(ref visibility) = self.visibility {
-            params.push(format!("visibility={}", visibility));
-        }
-        if let Some(ref search) = self.search {
-            params.push(format!("search={}", urlencoding::encode(search)));
-        }
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let query = if params.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", params.join("&"))
-        };
+        let query = QueryBuilder::new()
+            .optional(
+                "include_subgroups",
+                self.include_subgroups.then_some("true"),
+            )
+            .optional("archived", self.archived)
+            .optional("visibility", self.visibility.as_ref())
+            .optional_encoded("search", self.search.as_ref())
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
         let endpoint = format!("/groups/{}/projects{}", group, query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }
@@ -276,30 +214,15 @@ pub struct ListSubgroups {
 impl ToolExecutor for ListSubgroups {
     async fn execute(&self, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
         let group = GitLabClient::encode_project(&self.group);
-        let mut params = Vec::new();
-
-        if self.statistics {
-            params.push("statistics=true".to_string());
-        }
-        if let Some(ref search) = self.search {
-            params.push(format!("search={}", urlencoding::encode(search)));
-        }
-        if let Some(per_page) = self.per_page {
-            params.push(format!("per_page={}", per_page.min(100)));
-        }
-        if let Some(page) = self.page {
-            params.push(format!("page={}", page));
-        }
-
-        let query = if params.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", params.join("&"))
-        };
+        let query = QueryBuilder::new()
+            .optional("statistics", self.statistics.then_some("true"))
+            .optional_encoded("search", self.search.as_ref())
+            .optional("per_page", self.per_page.map(|p| p.min(100)))
+            .optional("page", self.page)
+            .build();
 
         let endpoint = format!("/groups/{}/subgroups{}", group, query);
         let result: serde_json::Value = ctx.gitlab.get(&endpoint).await?;
-
         ToolOutput::json_value(result)
     }
 }
