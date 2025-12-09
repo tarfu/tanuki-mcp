@@ -91,40 +91,24 @@ async fn main() -> anyhow::Result<()> {
     );
 
     // Load configuration
-    let config = match load_config(args.config.as_deref()) {
-        Ok(c) => c,
-        Err(e) => {
-            error!(error = %e, "Failed to load configuration");
-            return Err(e.into());
-        }
-    };
+    let config = load_config(args.config.as_deref())
+        .inspect_err(|e| error!(error = %e, "Failed to load configuration"))?;
 
     // Create auth provider
-    let auth = match create_auth_provider(&config.gitlab) {
-        Ok(a) => a,
-        Err(e) => {
-            error!(error = %e, "Failed to create auth provider");
-            return Err(e.into());
-        }
-    };
+    let auth = create_auth_provider(&config.gitlab)
+        .inspect_err(|e| error!(error = %e, "Failed to create auth provider"))?;
 
     // Create GitLab client
-    let gitlab = match GitLabClient::new(&config.gitlab, auth) {
-        Ok(c) => Arc::new(c),
-        Err(e) => {
-            error!(error = %e, "Failed to create GitLab client");
-            return Err(e.into());
-        }
-    };
+    let gitlab = Arc::new(
+        GitLabClient::new(&config.gitlab, auth)
+            .inspect_err(|e| error!(error = %e, "Failed to create GitLab client"))?,
+    );
 
     // Create access control resolver
-    let access = match AccessResolver::new(&config.access_control) {
-        Ok(a) => Arc::new(a),
-        Err(e) => {
-            error!(error = %e, "Failed to create access resolver");
-            return Err(e.into());
-        }
-    };
+    let access = Arc::new(
+        AccessResolver::new(&config.access_control)
+            .inspect_err(|e| error!(error = %e, "Failed to create access resolver"))?,
+    );
 
     // Create shared metrics collector
     let metrics = Arc::new(DashboardMetrics::new());

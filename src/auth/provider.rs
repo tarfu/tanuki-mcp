@@ -6,6 +6,7 @@
 use crate::error::AuthError;
 // async_trait required for dyn-compatibility with Box<dyn AuthProvider>
 use async_trait::async_trait;
+use std::sync::Arc;
 
 /// Authentication provider trait
 ///
@@ -39,9 +40,9 @@ pub trait AuthProvider: Send + Sync {
 #[derive(Debug, Clone)]
 pub enum AuthHeader {
     /// Bearer token (used with OAuth2)
-    Bearer(String),
+    Bearer(Arc<str>),
     /// Private token (used with PAT)
-    PrivateToken(String),
+    PrivateToken(Arc<str>),
 }
 
 impl AuthHeader {
@@ -57,7 +58,7 @@ impl AuthHeader {
     pub fn header_value(&self) -> String {
         match self {
             AuthHeader::Bearer(token) => format!("Bearer {}", token),
-            AuthHeader::PrivateToken(token) => token.clone(),
+            AuthHeader::PrivateToken(token) => token.to_string(),
         }
     }
 }

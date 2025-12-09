@@ -15,6 +15,7 @@ use crate::config::{
     AccessControlConfig, AccessLevel, ActionPermission, CategoryAccessConfig, ProjectAccessConfig,
 };
 use crate::error::{AccessDeniedError, ConfigError};
+use std::borrow::Cow;
 use std::collections::HashMap;
 use tracing::{debug, trace};
 
@@ -59,7 +60,7 @@ pub enum AccessDecision {
     /// Access is allowed
     Allowed,
     /// Access is denied with a reason
-    Denied(String),
+    Denied(Cow<'static, str>),
 }
 
 impl AccessDecision {
@@ -158,9 +159,10 @@ impl AccessResolver {
             trace!("Matched project action override");
             return match permission {
                 ActionPermission::Allow => AccessDecision::Allowed,
-                ActionPermission::Deny => {
-                    AccessDecision::Denied(format!("Explicitly denied for project '{}'", proj_name))
-                }
+                ActionPermission::Deny => AccessDecision::Denied(Cow::Owned(format!(
+                    "Explicitly denied for project '{}'",
+                    proj_name
+                ))),
             };
         }
 
@@ -170,7 +172,7 @@ impl AccessResolver {
             return match permission {
                 ActionPermission::Allow => AccessDecision::Allowed,
                 ActionPermission::Deny => {
-                    AccessDecision::Denied("Explicitly denied by action override".to_string())
+                    AccessDecision::Denied(Cow::Borrowed("Explicitly denied by action override"))
                 }
             };
         }
@@ -204,7 +206,10 @@ impl AccessResolver {
             }
             if let Some(pattern) = proj_config.deny.find_match(tool_name) {
                 trace!("Matched project deny pattern: {}", pattern);
-                return AccessDecision::Denied(format!("Denied by project pattern '{}'", pattern));
+                return AccessDecision::Denied(Cow::Owned(format!(
+                    "Denied by project pattern '{}'",
+                    pattern
+                )));
             }
 
             // Check project base level
@@ -222,7 +227,7 @@ impl AccessResolver {
         }
         if let Some(pattern) = self.global_deny.find_match(tool_name) {
             trace!("Matched global deny pattern: {}", pattern);
-            return AccessDecision::Denied(format!("Denied by pattern '{}'", pattern));
+            return AccessDecision::Denied(Cow::Owned(format!("Denied by pattern '{}'", pattern)));
         }
 
         // Fall back to base level
@@ -242,10 +247,10 @@ impl AccessResolver {
             return Some(AccessDecision::Allowed);
         }
         if let Some(pattern) = config.deny.find_match(tool_name) {
-            return Some(AccessDecision::Denied(format!(
+            return Some(AccessDecision::Denied(Cow::Owned(format!(
                 "Denied by category pattern '{}'",
                 pattern
-            )));
+            ))));
         }
 
         // If no pattern matched, check the level
@@ -262,15 +267,15 @@ impl AccessResolver {
         match (level, operation) {
             (AccessLevel::Full, _) => AccessDecision::Allowed,
             (AccessLevel::Read, OperationType::Read) => AccessDecision::Allowed,
-            (AccessLevel::Read, _) => AccessDecision::Denied(format!(
+            (AccessLevel::Read, _) => AccessDecision::Denied(Cow::Owned(format!(
                 "Operation '{}' requires write access, but only read access is granted",
                 operation
-            )),
+            ))),
             (AccessLevel::Deny, _) => {
-                AccessDecision::Denied("Access explicitly denied at this level".to_string())
+                AccessDecision::Denied(Cow::Borrowed("Access explicitly denied at this level"))
             }
             (AccessLevel::None, _) => {
-                AccessDecision::Denied("No access granted at this level".to_string())
+                AccessDecision::Denied(Cow::Borrowed("No access granted at this level"))
             }
         }
     }

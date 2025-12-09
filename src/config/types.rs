@@ -7,9 +7,8 @@ use serde::Deserialize;
 use std::collections::HashMap;
 
 /// Root configuration structure
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
-#[derive(Default)]
 pub struct AppConfig {
     /// GitLab connection settings
     pub gitlab: GitLabConfig,
@@ -246,9 +245,8 @@ pub enum ActionPermission {
 /// Project-specific access configuration
 ///
 /// Inherits from global config but can override any setting
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
-#[derive(Default)]
 pub struct ProjectAccessConfig {
     /// Override base access level for this project
     #[serde(default)]

@@ -138,17 +138,17 @@ pub enum OperationType {
 
 impl OperationType {
     /// Check if this operation is read-only
-    pub fn is_read_only(&self) -> bool {
+    pub const fn is_read_only(&self) -> bool {
         matches!(self, OperationType::Read)
     }
 
     /// Check if this operation modifies data
-    pub fn is_mutating(&self) -> bool {
+    pub const fn is_mutating(&self) -> bool {
         !self.is_read_only()
     }
 
     /// Get the operation name as a string
-    pub fn as_str(&self) -> &'static str {
+    pub const fn as_str(&self) -> &'static str {
         match self {
             OperationType::Read => "read",
             OperationType::Write => "write",

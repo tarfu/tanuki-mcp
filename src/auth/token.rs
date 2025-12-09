@@ -5,11 +5,12 @@
 use crate::auth::provider::{AuthHeader, AuthProvider};
 use crate::error::AuthError;
 use async_trait::async_trait;
+use std::sync::Arc;
 
 /// Personal Access Token authentication provider
 #[derive(Debug, Clone)]
 pub struct PatProvider {
-    token: String,
+    token: Arc<str>,
 }
 
 impl PatProvider {
@@ -24,7 +25,9 @@ impl PatProvider {
 
         // GitLab PATs have specific prefixes (glpat- for newer tokens)
         // but we don't enforce this as older tokens may not have it
-        Ok(Self { token })
+        Ok(Self {
+            token: token.into(),
+        })
     }
 
     /// Create from environment variable
@@ -51,7 +54,7 @@ impl PatProvider {
 #[async_trait]
 impl AuthProvider for PatProvider {
     async fn get_auth_header(&self) -> Result<AuthHeader, AuthError> {
-        Ok(AuthHeader::PrivateToken(self.token.clone()))
+        Ok(AuthHeader::PrivateToken(Arc::clone(&self.token)))
     }
 
     fn needs_refresh(&self) -> bool {
@@ -76,7 +79,7 @@ mod tests {
     #[test]
     fn test_pat_provider_new() {
         let provider = PatProvider::new("glpat-xxxx").unwrap();
-        assert_eq!(provider.token, "glpat-xxxx");
+        assert_eq!(&*provider.token, "glpat-xxxx");
     }
 
     #[test]

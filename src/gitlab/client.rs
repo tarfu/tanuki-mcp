@@ -17,8 +17,6 @@ pub struct GitLabClient {
     http: Client,
     base_url: String,
     auth: Arc<RwLock<BoxedAuthProvider>>,
-    #[allow(dead_code)]
-    timeout: Duration,
     max_retries: u32,
 }
 
@@ -27,6 +25,8 @@ impl GitLabClient {
     pub fn new(config: &GitLabConfig, auth: BoxedAuthProvider) -> GitLabResult<Self> {
         let http = Client::builder()
             .timeout(Duration::from_secs(config.timeout_secs))
+            .pool_max_idle_per_host(10)
+            .pool_idle_timeout(Duration::from_secs(90))
             .danger_accept_invalid_certs(!config.verify_ssl)
             .user_agent(format!("tanuki-mcp/{}", env!("CARGO_PKG_VERSION")))
             .build()
@@ -36,7 +36,6 @@ impl GitLabClient {
             http,
             base_url: config.api_url(),
             auth: Arc::new(RwLock::new(auth)),
-            timeout: Duration::from_secs(config.timeout_secs),
             max_retries: config.max_retries,
         })
     }
