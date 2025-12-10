@@ -5,7 +5,7 @@
 
 use crate::access_control::ToolCategory;
 use serde::Serialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::time::{Duration, Instant, SystemTime};
@@ -23,14 +23,8 @@ pub struct DashboardMetrics {
     total_requests: AtomicU64,
     /// Total errors
     total_errors: AtomicU64,
-    /// Per-tool statistics
-    tool_stats: RwLock<HashMap<String, ToolStatsInner>>,
-    /// Per-project statistics
-    project_stats: RwLock<HashMap<String, ProjectStatsInner>>,
-    /// Per-category statistics
-    category_stats: RwLock<HashMap<ToolCategory, CategoryStatsInner>>,
-    /// Recent requests (circular buffer)
-    recent_requests: RwLock<Vec<RequestRecord>>,
+    /// Combined metrics data (single lock for all collections)
+    data: RwLock<MetricsData>,
     /// Maximum recent requests to keep
     max_recent_requests: usize,
 }
@@ -57,6 +51,16 @@ struct ProjectStatsInner {
 struct CategoryStatsInner {
     call_count: u64,
     error_count: u64,
+}
+
+/// Combined metrics data protected by a single lock
+/// This reduces lock acquisitions from 4 to 1 per request
+#[derive(Default)]
+struct MetricsData {
+    tool_stats: HashMap<String, ToolStatsInner>,
+    project_stats: HashMap<String, ProjectStatsInner>,
+    category_stats: HashMap<ToolCategory, CategoryStatsInner>,
+    recent_requests: VecDeque<RequestRecord>,
 }
 
 /// Record of a recent request with audit information
@@ -144,10 +148,12 @@ impl DashboardMetrics {
             start_system_time: SystemTime::now(),
             total_requests: AtomicU64::new(0),
             total_errors: AtomicU64::new(0),
-            tool_stats: RwLock::new(HashMap::new()),
-            project_stats: RwLock::new(HashMap::new()),
-            category_stats: RwLock::new(HashMap::new()),
-            recent_requests: RwLock::new(Vec::with_capacity(max_recent_requests)),
+            data: RwLock::new(MetricsData {
+                tool_stats: HashMap::new(),
+                project_stats: HashMap::new(),
+                category_stats: HashMap::new(),
+                recent_requests: VecDeque::with_capacity(max_recent_requests),
+            }),
             max_recent_requests,
         }
     }
@@ -155,62 +161,16 @@ impl DashboardMetrics {
     // Helper methods for safe lock access with poison recovery
     // These recover from poisoned locks by logging a warning and continuing with the data
 
-    fn write_tool_stats(&self) -> RwLockWriteGuard<'_, HashMap<String, ToolStatsInner>> {
-        self.tool_stats.write().unwrap_or_else(|poisoned| {
-            tracing::warn!("tool_stats lock poisoned, recovering");
+    fn write_data(&self) -> RwLockWriteGuard<'_, MetricsData> {
+        self.data.write().unwrap_or_else(|poisoned| {
+            tracing::warn!("metrics data lock poisoned, recovering");
             poisoned.into_inner()
         })
     }
 
-    fn read_tool_stats(&self) -> RwLockReadGuard<'_, HashMap<String, ToolStatsInner>> {
-        self.tool_stats.read().unwrap_or_else(|poisoned| {
-            tracing::warn!("tool_stats lock poisoned, recovering");
-            poisoned.into_inner()
-        })
-    }
-
-    fn write_category_stats(
-        &self,
-    ) -> RwLockWriteGuard<'_, HashMap<ToolCategory, CategoryStatsInner>> {
-        self.category_stats.write().unwrap_or_else(|poisoned| {
-            tracing::warn!("category_stats lock poisoned, recovering");
-            poisoned.into_inner()
-        })
-    }
-
-    fn read_category_stats(
-        &self,
-    ) -> RwLockReadGuard<'_, HashMap<ToolCategory, CategoryStatsInner>> {
-        self.category_stats.read().unwrap_or_else(|poisoned| {
-            tracing::warn!("category_stats lock poisoned, recovering");
-            poisoned.into_inner()
-        })
-    }
-
-    fn write_project_stats(&self) -> RwLockWriteGuard<'_, HashMap<String, ProjectStatsInner>> {
-        self.project_stats.write().unwrap_or_else(|poisoned| {
-            tracing::warn!("project_stats lock poisoned, recovering");
-            poisoned.into_inner()
-        })
-    }
-
-    fn read_project_stats(&self) -> RwLockReadGuard<'_, HashMap<String, ProjectStatsInner>> {
-        self.project_stats.read().unwrap_or_else(|poisoned| {
-            tracing::warn!("project_stats lock poisoned, recovering");
-            poisoned.into_inner()
-        })
-    }
-
-    fn write_recent_requests(&self) -> RwLockWriteGuard<'_, Vec<RequestRecord>> {
-        self.recent_requests.write().unwrap_or_else(|poisoned| {
-            tracing::warn!("recent_requests lock poisoned, recovering");
-            poisoned.into_inner()
-        })
-    }
-
-    fn read_recent_requests(&self) -> RwLockReadGuard<'_, Vec<RequestRecord>> {
-        self.recent_requests.read().unwrap_or_else(|poisoned| {
-            tracing::warn!("recent_requests lock poisoned, recovering");
+    fn read_data(&self) -> RwLockReadGuard<'_, MetricsData> {
+        self.data.read().unwrap_or_else(|poisoned| {
+            tracing::warn!("metrics data lock poisoned, recovering");
             poisoned.into_inner()
         })
     }
@@ -230,6 +190,7 @@ impl DashboardMetrics {
     }
 
     /// Record a tool call with full audit information
+    #[allow(clippy::too_many_arguments)]
     pub fn record_call_with_audit(
         &self,
         tool_name: &str,
@@ -248,60 +209,80 @@ impl DashboardMetrics {
             .map(|d| d.as_secs())
             .unwrap_or(0);
 
-        // Update total counters
+        // Update total counters (atomic, outside lock)
         self.total_requests.fetch_add(1, Ordering::Relaxed);
         if !success {
             self.total_errors.fetch_add(1, Ordering::Relaxed);
         }
 
-        // Update tool stats
-        {
-            let mut stats = self.write_tool_stats();
-            let entry = stats.entry(tool_name.to_string()).or_default();
+        // Update all metrics with a single lock acquisition
+        let mut data = self.write_data();
+
+        // Update tool stats - avoid String allocation if key exists
+        if let Some(entry) = data.tool_stats.get_mut(tool_name) {
             entry.call_count += 1;
             if !success {
                 entry.error_count += 1;
             }
             entry.total_duration_ms += duration_ms;
             entry.last_called = Some(now);
+        } else {
+            data.tool_stats.insert(
+                tool_name.to_string(),
+                ToolStatsInner {
+                    call_count: 1,
+                    error_count: if success { 0 } else { 1 },
+                    total_duration_ms: duration_ms,
+                    last_called: Some(now),
+                },
+            );
         }
 
         // Update category stats
-        {
-            let mut stats = self.write_category_stats();
-            let entry = stats.entry(category).or_default();
-            entry.call_count += 1;
-            if !success {
-                entry.error_count += 1;
-            }
+        let cat_entry = data.category_stats.entry(category).or_default();
+        cat_entry.call_count += 1;
+        if !success {
+            cat_entry.error_count += 1;
         }
 
-        // Update project stats if applicable
+        // Update project stats if applicable - avoid String allocations when keys exist
         if let Some(proj) = project {
-            let mut stats = self.write_project_stats();
-            let entry = stats.entry(proj.to_string()).or_default();
-            entry.access_count += 1;
-            *entry.tools_used.entry(tool_name.to_string()).or_default() += 1;
-            entry.last_accessed = Some(now);
+            if let Some(proj_entry) = data.project_stats.get_mut(proj) {
+                proj_entry.access_count += 1;
+                if let Some(count) = proj_entry.tools_used.get_mut(tool_name) {
+                    *count += 1;
+                } else {
+                    proj_entry.tools_used.insert(tool_name.to_string(), 1);
+                }
+                proj_entry.last_accessed = Some(now);
+            } else {
+                let mut tools_used = HashMap::new();
+                tools_used.insert(tool_name.to_string(), 1);
+                data.project_stats.insert(
+                    proj.to_string(),
+                    ProjectStatsInner {
+                        access_count: 1,
+                        tools_used,
+                        last_accessed: Some(now),
+                    },
+                );
+            }
         }
 
         // Record recent request
-        {
-            let mut recent = self.write_recent_requests();
-            if recent.len() >= self.max_recent_requests {
-                recent.remove(0);
-            }
-            recent.push(RequestRecord {
-                tool: tool_name.to_string(),
-                project: project.map(String::from),
-                success,
-                duration_ms,
-                timestamp,
-                request_id: request_id.map(String::from),
-                access_decision: access_decision.map(String::from),
-                error_details: error_details.map(String::from),
-            });
+        if data.recent_requests.len() >= self.max_recent_requests {
+            data.recent_requests.pop_front(); // O(1) instead of O(n)
         }
+        data.recent_requests.push_back(RequestRecord {
+            tool: tool_name.to_string(),
+            project: project.map(String::from),
+            success,
+            duration_ms,
+            timestamp,
+            request_id: request_id.map(String::from),
+            access_decision: access_decision.map(String::from),
+            error_details: error_details.map(String::from),
+        });
     }
 
     /// Get a snapshot of all metrics
@@ -317,80 +298,77 @@ impl DashboardMetrics {
             0.0
         };
 
+        // Read all data with a single lock acquisition
+        let data = self.read_data();
+
         // Get tool stats
-        let tools: Vec<ToolStats> = {
-            let stats = self.read_tool_stats();
-            let mut tools: Vec<_> = stats
-                .iter()
-                .map(|(name, s)| ToolStats {
+        let mut tools: Vec<ToolStats> = data
+            .tool_stats
+            .iter()
+            .map(|(name, s)| ToolStats {
+                name: name.clone(),
+                call_count: s.call_count,
+                error_count: s.error_count,
+                avg_duration_ms: if s.call_count > 0 {
+                    s.total_duration_ms / s.call_count
+                } else {
+                    0
+                },
+                last_called: s.last_called.and_then(|t| {
+                    t.duration_since(SystemTime::UNIX_EPOCH)
+                        .ok()
+                        .map(|d| d.as_secs())
+                }),
+            })
+            .collect();
+        tools.sort_unstable_by(|a, b| b.call_count.cmp(&a.call_count));
+
+        // Get project stats
+        let mut projects: Vec<ProjectStats> = data
+            .project_stats
+            .iter()
+            .map(|(name, s)| {
+                let mut tools_used: Vec<_> = s
+                    .tools_used
+                    .iter()
+                    .map(|(tool, count)| ToolUsageCount {
+                        tool: tool.clone(),
+                        count: *count,
+                    })
+                    .collect();
+                tools_used.sort_unstable_by(|a, b| b.count.cmp(&a.count));
+
+                ProjectStats {
                     name: name.clone(),
-                    call_count: s.call_count,
-                    error_count: s.error_count,
-                    avg_duration_ms: if s.call_count > 0 {
-                        s.total_duration_ms / s.call_count
-                    } else {
-                        0
-                    },
-                    last_called: s.last_called.and_then(|t| {
+                    access_count: s.access_count,
+                    tools_used,
+                    last_accessed: s.last_accessed.and_then(|t| {
                         t.duration_since(SystemTime::UNIX_EPOCH)
                             .ok()
                             .map(|d| d.as_secs())
                     }),
-                })
-                .collect();
-            tools.sort_by(|a, b| b.call_count.cmp(&a.call_count));
-            tools
-        };
-
-        // Get project stats
-        let projects: Vec<ProjectStats> = {
-            let stats = self.read_project_stats();
-            let mut projects: Vec<_> = stats
-                .iter()
-                .map(|(name, s)| {
-                    let mut tools_used: Vec<_> = s
-                        .tools_used
-                        .iter()
-                        .map(|(tool, count)| ToolUsageCount {
-                            tool: tool.clone(),
-                            count: *count,
-                        })
-                        .collect();
-                    tools_used.sort_by(|a, b| b.count.cmp(&a.count));
-
-                    ProjectStats {
-                        name: name.clone(),
-                        access_count: s.access_count,
-                        tools_used,
-                        last_accessed: s.last_accessed.and_then(|t| {
-                            t.duration_since(SystemTime::UNIX_EPOCH)
-                                .ok()
-                                .map(|d| d.as_secs())
-                        }),
-                    }
-                })
-                .collect();
-            projects.sort_by(|a, b| b.access_count.cmp(&a.access_count));
-            projects
-        };
+                }
+            })
+            .collect();
+        projects.sort_unstable_by(|a, b| b.access_count.cmp(&a.access_count));
 
         // Get category stats
-        let categories: Vec<CategoryStats> = {
-            let stats = self.read_category_stats();
-            let mut categories: Vec<_> = stats
-                .iter()
-                .map(|(cat, s)| CategoryStats {
-                    name: format!("{}", cat),
-                    call_count: s.call_count,
-                    error_count: s.error_count,
-                })
-                .collect();
-            categories.sort_by(|a, b| b.call_count.cmp(&a.call_count));
-            categories
-        };
+        let mut categories: Vec<CategoryStats> = data
+            .category_stats
+            .iter()
+            .map(|(cat, s)| CategoryStats {
+                name: format!("{}", cat),
+                call_count: s.call_count,
+                error_count: s.error_count,
+            })
+            .collect();
+        categories.sort_unstable_by(|a, b| b.call_count.cmp(&a.call_count));
 
-        // Get recent requests
-        let recent_requests = self.read_recent_requests().clone();
+        // Get recent requests (convert VecDeque to Vec)
+        let recent_requests: Vec<_> = data.recent_requests.iter().cloned().collect();
+
+        // Release the lock before computing start_time
+        drop(data);
 
         let start_time = self
             .start_system_time

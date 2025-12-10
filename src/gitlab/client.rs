@@ -113,19 +113,25 @@ impl GitLabClient {
         Err(GitLabError::from_response(status.as_u16(), &body))
     }
 
+    /// Execute a request and parse the JSON response
+    async fn execute_and_parse<T: DeserializeOwned>(
+        &self,
+        request: RequestBuilder,
+    ) -> GitLabResult<T> {
+        let response = self.execute(request).await?;
+        response
+            .json()
+            .await
+            .map_err(|e| GitLabError::InvalidResponse(format!("Failed to parse response: {}", e)))
+    }
+
     /// Make a GET request
     #[instrument(skip(self), fields(endpoint = %endpoint))]
     pub async fn get<T: DeserializeOwned>(&self, endpoint: &str) -> GitLabResult<T> {
         let url = self.url(endpoint);
         let request = self.http.get(&url);
         let request = self.authenticate(request).await?;
-
-        let response = self.execute(request).await?;
-        let data = response.json().await.map_err(|e| {
-            GitLabError::InvalidResponse(format!("Failed to parse response: {}", e))
-        })?;
-
-        Ok(data)
+        self.execute_and_parse(request).await
     }
 
     /// Make a GET request returning raw JSON value
@@ -158,13 +164,7 @@ impl GitLabClient {
         let url = self.url(endpoint);
         let request = self.http.post(&url).json(body);
         let request = self.authenticate(request).await?;
-
-        let response = self.execute(request).await?;
-        let data = response.json().await.map_err(|e| {
-            GitLabError::InvalidResponse(format!("Failed to parse response: {}", e))
-        })?;
-
-        Ok(data)
+        self.execute_and_parse(request).await
     }
 
     /// Make a POST request returning raw JSON value
@@ -200,13 +200,7 @@ impl GitLabClient {
         let url = self.url(endpoint);
         let request = self.http.put(&url).json(body);
         let request = self.authenticate(request).await?;
-
-        let response = self.execute(request).await?;
-        let data = response.json().await.map_err(|e| {
-            GitLabError::InvalidResponse(format!("Failed to parse response: {}", e))
-        })?;
-
-        Ok(data)
+        self.execute_and_parse(request).await
     }
 
     /// Make a PUT request returning raw JSON value

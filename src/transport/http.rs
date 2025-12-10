@@ -68,7 +68,7 @@ async fn health_handler() -> Json<serde_json::Value> {
 ///
 /// # Returns
 /// A cancellation token that can be used to stop the server
-pub async fn run_http<F>(
+pub(crate) async fn run_http<F>(
     handler_factory: F,
     config: HttpConfig,
 ) -> anyhow::Result<CancellationToken>

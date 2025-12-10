@@ -2422,13 +2422,6 @@ mod category_tests {
         "get_group"
     );
     category_test!(
-        test_graphql_allowed,
-        test_graphql_denied,
-        GraphQL,
-        "execute_graphql",
-        "execute_graphql"
-    );
-    category_test!(
         test_tags_allowed,
         test_tags_denied,
         Tags,

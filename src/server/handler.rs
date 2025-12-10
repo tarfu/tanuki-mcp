@@ -22,7 +22,7 @@ use rmcp::service::{RequestContext, RoleServer};
 use serde_json::{Map, Value};
 use std::borrow::Cow;
 use std::future::Future;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use tracing::{debug, error, info, instrument};
 
 /// GitLab MCP server handler
@@ -40,9 +40,18 @@ pub struct GitLabMcpHandler {
     access: Arc<AccessResolver>,
     /// Dashboard metrics (optional)
     metrics: Option<Arc<DashboardMetrics>>,
+    /// Cached tool list (lazy-initialized, shared across clones)
+    cached_tools: Arc<OnceLock<Vec<Tool>>>,
 }
 
 impl GitLabMcpHandler {
+    /// Create a new tool registry with all tools registered
+    fn create_registry() -> Arc<ToolRegistry> {
+        let mut registry = ToolRegistry::new();
+        definitions::register_all_tools(&mut registry);
+        Arc::new(registry)
+    }
+
     /// Create a new handler from configuration
     pub fn new(config: &AppConfig, gitlab: GitLabClient, access: AccessResolver) -> Self {
         Self::new_with_shared(config, Arc::new(gitlab), Arc::new(access))
@@ -58,19 +67,17 @@ impl GitLabMcpHandler {
         gitlab: Arc<GitLabClient>,
         access: Arc<AccessResolver>,
     ) -> Self {
-        // Build tool registry
-        let mut registry = ToolRegistry::new();
-        definitions::register_all_tools(&mut registry);
-
+        let registry = Self::create_registry();
         info!(tools = registry.len(), "Initialized GitLab MCP handler");
 
         Self {
             name: config.server.name.clone(),
             version: config.server.version.clone(),
-            registry: Arc::new(registry),
+            registry,
             gitlab,
             access,
             metrics: None,
+            cached_tools: Arc::new(OnceLock::new()),
         }
     }
 
@@ -81,10 +88,7 @@ impl GitLabMcpHandler {
         access: Arc<AccessResolver>,
         metrics: Arc<DashboardMetrics>,
     ) -> Self {
-        // Build tool registry
-        let mut registry = ToolRegistry::new();
-        definitions::register_all_tools(&mut registry);
-
+        let registry = Self::create_registry();
         info!(
             tools = registry.len(),
             "Initialized GitLab MCP handler with metrics"
@@ -93,10 +97,11 @@ impl GitLabMcpHandler {
         Self {
             name: config.server.name.clone(),
             version: config.server.version.clone(),
-            registry: Arc::new(registry),
+            registry,
             gitlab,
             access,
             metrics: Some(metrics),
+            cached_tools: Arc::new(OnceLock::new()),
         }
     }
 
@@ -148,49 +153,58 @@ impl GitLabMcpHandler {
     ///
     /// Tools that are globally denied (denied everywhere, no project grants access)
     /// will have their description prefixed with "UNAVAILABLE: ".
+    ///
+    /// The tool list is cached after first generation for performance.
     fn get_mcp_tools(&self) -> Vec<Tool> {
-        self.registry
-            .tools()
-            .map(|tool| {
-                // Convert schemars schema to MCP format (JsonObject = Map<String, Value>)
-                let schema_value = serde_json::to_value(&tool.input_schema)
-                    .unwrap_or_else(|_| serde_json::json!({}));
+        self.cached_tools
+            .get_or_init(|| {
+                self.registry
+                    .tools()
+                    .map(|tool| {
+                        // Convert schemars schema to MCP format (JsonObject = Map<String, Value>)
+                        let schema_value = serde_json::to_value(&tool.input_schema)
+                            .unwrap_or_else(|_| serde_json::json!({}));
 
-                // Build the input schema as a JsonObject
-                let mut input_schema: Map<String, Value> = Map::new();
-                input_schema.insert("type".to_string(), Value::String("object".to_string()));
+                        // Build the input schema as a JsonObject
+                        let mut input_schema: Map<String, Value> = Map::new();
+                        input_schema
+                            .insert("type".to_string(), Value::String("object".to_string()));
 
-                if let Some(props) = schema_value.get("properties") {
-                    input_schema.insert("properties".to_string(), props.clone());
-                }
-                if let Some(required) = schema_value.get("required") {
-                    input_schema.insert("required".to_string(), required.clone());
-                }
+                        if let Some(props) = schema_value.get("properties") {
+                            input_schema.insert("properties".to_string(), props.clone());
+                        }
+                        if let Some(required) = schema_value.get("required") {
+                            input_schema.insert("required".to_string(), required.clone());
+                        }
 
-                // Check if this tool is globally denied (denied everywhere)
-                let is_globally_denied =
-                    self.access
-                        .is_globally_denied(tool.name, tool.category, tool.operation);
+                        // Check if this tool is globally denied (denied everywhere)
+                        let is_globally_denied = self.access.is_globally_denied(
+                            tool.name,
+                            tool.category,
+                            tool.operation,
+                        );
 
-                // Build description - prefix with UNAVAILABLE if globally denied
-                let description = if is_globally_denied {
-                    format!("UNAVAILABLE: {}", tool.description)
-                } else {
-                    tool.description.to_string()
-                };
+                        // Build description - prefix with UNAVAILABLE if globally denied
+                        let description = if is_globally_denied {
+                            format!("UNAVAILABLE: {}", tool.description)
+                        } else {
+                            tool.description.to_string()
+                        };
 
-                Tool {
-                    name: Cow::Owned(tool.name.to_string()),
-                    description: Some(Cow::Owned(description)),
-                    input_schema: Arc::new(input_schema),
-                    annotations: None,
-                    icons: None,
-                    meta: None,
-                    output_schema: None,
-                    title: None,
-                }
+                        Tool {
+                            name: Cow::Owned(tool.name.to_string()),
+                            description: Some(Cow::Owned(description)),
+                            input_schema: Arc::new(input_schema),
+                            annotations: None,
+                            icons: None,
+                            meta: None,
+                            output_schema: None,
+                            title: None,
+                        }
+                    })
+                    .collect()
             })
-            .collect()
+            .clone()
     }
 
     /// Get tool names for completion, filtered by prefix
@@ -313,25 +327,25 @@ impl GitLabMcpHandler {
         );
 
         // Add discussions if present
-        if let Some(disc_array) = discussions.as_array() {
-            if !disc_array.is_empty() {
-                prompt_text.push_str("## Discussions\n\n");
-                for (i, discussion) in disc_array.iter().enumerate() {
-                    if let Some(notes) = discussion.get("notes").and_then(|n| n.as_array()) {
-                        for note in notes {
-                            let note_author = note
-                                .get("author")
-                                .and_then(|a| a.get("username"))
-                                .and_then(|v| v.as_str())
-                                .unwrap_or("unknown");
-                            let note_body = note.get("body").and_then(|v| v.as_str()).unwrap_or("");
-                            prompt_text.push_str(&format!(
-                                "### Comment {} by @{}\n\n{}\n\n",
-                                i + 1,
-                                note_author,
-                                note_body
-                            ));
-                        }
+        if let Some(disc_array) = discussions.as_array()
+            && !disc_array.is_empty()
+        {
+            prompt_text.push_str("## Discussions\n\n");
+            for (i, discussion) in disc_array.iter().enumerate() {
+                if let Some(notes) = discussion.get("notes").and_then(|n| n.as_array()) {
+                    for note in notes {
+                        let note_author = note
+                            .get("author")
+                            .and_then(|a| a.get("username"))
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("unknown");
+                        let note_body = note.get("body").and_then(|v| v.as_str()).unwrap_or("");
+                        prompt_text.push_str(&format!(
+                            "### Comment {} by @{}\n\n{}\n\n",
+                            i + 1,
+                            note_author,
+                            note_body
+                        ));
                     }
                 }
             }
@@ -655,18 +669,16 @@ impl ServerHandler for GitLabMcpHandler {
     ///
     /// Returns an empty list - resources are accessed directly by URI.
     /// The `gitlab://` URI scheme allows clients to read files from repositories.
-    fn list_resources(
+    async fn list_resources(
         &self,
         _request: Option<PaginatedRequestParam>,
         _context: RequestContext<RoleServer>,
-    ) -> impl Future<Output = Result<ListResourcesResult, McpError>> + Send + '_ {
-        async move {
-            Ok(ListResourcesResult {
-                resources: vec![],
-                next_cursor: None,
-                meta: None,
-            })
-        }
+    ) -> Result<ListResourcesResult, McpError> {
+        Ok(ListResourcesResult {
+            resources: vec![],
+            next_cursor: None,
+            meta: None,
+        })
     }
 
     /// Read a GitLab file resource by URI
@@ -743,59 +755,53 @@ impl ServerHandler for GitLabMcpHandler {
     /// List available prompts
     ///
     /// Returns built-in workflow prompts for GitLab operations.
-    fn list_prompts(
+    async fn list_prompts(
         &self,
         _request: Option<PaginatedRequestParam>,
         _context: RequestContext<RoleServer>,
-    ) -> impl Future<Output = Result<ListPromptsResult, McpError>> + Send + '_ {
-        async move {
-            Ok(ListPromptsResult {
-                prompts: vec![
-                    Prompt::new(
-                        "analyze_issue",
-                        Some("Analyze a GitLab issue with discussions and related MRs"),
-                        Some(vec![
-                            PromptArgument {
-                                name: "project".to_string(),
-                                title: Some("Project".to_string()),
-                                description: Some(
-                                    "Project path (e.g., 'group/project')".to_string(),
-                                ),
-                                required: Some(true),
-                            },
-                            PromptArgument {
-                                name: "issue_iid".to_string(),
-                                title: Some("Issue IID".to_string()),
-                                description: Some("Issue internal ID number".to_string()),
-                                required: Some(true),
-                            },
-                        ]),
-                    ),
-                    Prompt::new(
-                        "review_merge_request",
-                        Some("Review a merge request with changes and discussions"),
-                        Some(vec![
-                            PromptArgument {
-                                name: "project".to_string(),
-                                title: Some("Project".to_string()),
-                                description: Some(
-                                    "Project path (e.g., 'group/project')".to_string(),
-                                ),
-                                required: Some(true),
-                            },
-                            PromptArgument {
-                                name: "mr_iid".to_string(),
-                                title: Some("MR IID".to_string()),
-                                description: Some("Merge request internal ID number".to_string()),
-                                required: Some(true),
-                            },
-                        ]),
-                    ),
-                ],
-                next_cursor: None,
-                meta: None,
-            })
-        }
+    ) -> Result<ListPromptsResult, McpError> {
+        Ok(ListPromptsResult {
+            prompts: vec![
+                Prompt::new(
+                    "analyze_issue",
+                    Some("Analyze a GitLab issue with discussions and related MRs"),
+                    Some(vec![
+                        PromptArgument {
+                            name: "project".to_string(),
+                            title: Some("Project".to_string()),
+                            description: Some("Project path (e.g., 'group/project')".to_string()),
+                            required: Some(true),
+                        },
+                        PromptArgument {
+                            name: "issue_iid".to_string(),
+                            title: Some("Issue IID".to_string()),
+                            description: Some("Issue internal ID number".to_string()),
+                            required: Some(true),
+                        },
+                    ]),
+                ),
+                Prompt::new(
+                    "review_merge_request",
+                    Some("Review a merge request with changes and discussions"),
+                    Some(vec![
+                        PromptArgument {
+                            name: "project".to_string(),
+                            title: Some("Project".to_string()),
+                            description: Some("Project path (e.g., 'group/project')".to_string()),
+                            required: Some(true),
+                        },
+                        PromptArgument {
+                            name: "mr_iid".to_string(),
+                            title: Some("MR IID".to_string()),
+                            description: Some("Merge request internal ID number".to_string()),
+                            required: Some(true),
+                        },
+                    ]),
+                ),
+            ],
+            next_cursor: None,
+            meta: None,
+        })
     }
 
     /// Get a specific prompt by name

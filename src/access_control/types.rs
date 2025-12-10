@@ -27,7 +27,6 @@ pub enum ToolCategory {
     Releases,
     Users,
     Groups,
-    GraphQL,
     Tags,
     Search,
 }
@@ -54,7 +53,6 @@ impl ToolCategory {
             ToolCategory::Releases => "releases",
             ToolCategory::Users => "users",
             ToolCategory::Groups => "groups",
-            ToolCategory::GraphQL => "graphql",
             ToolCategory::Tags => "tags",
             ToolCategory::Search => "search",
         }
@@ -81,7 +79,6 @@ impl ToolCategory {
             "releases" => Some(ToolCategory::Releases),
             "users" => Some(ToolCategory::Users),
             "groups" => Some(ToolCategory::Groups),
-            "graphql" => Some(ToolCategory::GraphQL),
             "tags" => Some(ToolCategory::Tags),
             "search" => Some(ToolCategory::Search),
             _ => None,
@@ -109,7 +106,6 @@ impl ToolCategory {
             ToolCategory::Releases,
             ToolCategory::Users,
             ToolCategory::Groups,
-            ToolCategory::GraphQL,
             ToolCategory::Tags,
             ToolCategory::Search,
         ]
