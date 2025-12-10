@@ -4,7 +4,7 @@
 
 use crate::server::GitLabMcpHandler;
 use crate::util::bind_port_strict;
-use axum::{Json, routing::get};
+use axum::{Json, Router, routing::get};
 use rmcp::transport::streamable_http_server::{
     StreamableHttpService, session::local::LocalSessionManager,
 };
@@ -96,8 +96,8 @@ where
         Default::default(),
     );
 
-    // Build the router with MCP endpoint and health check
-    let router = axum::Router::new()
+    // Build router with MCP service and health endpoint
+    let router = Router::new()
         .nest_service(&config.mcp_path, service)
         .route("/health", get(health_handler));
 

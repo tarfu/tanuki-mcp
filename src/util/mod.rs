@@ -1,5 +1,9 @@
 //! Utility functions shared across the application.
 
+mod secret;
+
+pub use secret::SecretString;
+
 use std::fmt::Display;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;

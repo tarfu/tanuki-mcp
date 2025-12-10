@@ -201,9 +201,14 @@ async fn test_handler_capabilities() {
     let tools_cap = info.capabilities.tools.unwrap();
     assert_eq!(tools_cap.list_changed, Some(false));
 
-    // Should not have other capabilities by default
-    assert!(info.capabilities.prompts.is_none());
-    assert!(info.capabilities.resources.is_none());
+    // Should have resources capability
+    let resources_cap = info.capabilities.resources.unwrap();
+    assert_eq!(resources_cap.subscribe, Some(false));
+    assert_eq!(resources_cap.list_changed, Some(false));
+
+    // Should have prompts capability
+    let prompts_cap = info.capabilities.prompts.unwrap();
+    assert_eq!(prompts_cap.list_changed, Some(false));
 }
 
 #[tokio::test]

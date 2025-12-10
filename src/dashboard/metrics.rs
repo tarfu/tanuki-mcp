@@ -59,7 +59,7 @@ struct CategoryStatsInner {
     error_count: u64,
 }
 
-/// Record of a recent request
+/// Record of a recent request with audit information
 #[derive(Clone, Serialize)]
 pub struct RequestRecord {
     /// Tool name
@@ -72,6 +72,15 @@ pub struct RequestRecord {
     pub duration_ms: u64,
     /// Timestamp
     pub timestamp: u64,
+    /// Request ID for tracing correlation
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_id: Option<String>,
+    /// Access control decision (if applicable)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub access_decision: Option<String>,
+    /// Error details (if the request failed)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_details: Option<String>,
 }
 
 /// Serializable tool statistics for API
@@ -206,7 +215,7 @@ impl DashboardMetrics {
         })
     }
 
-    /// Record a tool call
+    /// Record a tool call with optional audit information
     pub fn record_call(
         &self,
         tool_name: &str,
@@ -214,6 +223,23 @@ impl DashboardMetrics {
         project: Option<&str>,
         duration: Duration,
         success: bool,
+    ) {
+        self.record_call_with_audit(
+            tool_name, category, project, duration, success, None, None, None,
+        );
+    }
+
+    /// Record a tool call with full audit information
+    pub fn record_call_with_audit(
+        &self,
+        tool_name: &str,
+        category: ToolCategory,
+        project: Option<&str>,
+        duration: Duration,
+        success: bool,
+        request_id: Option<&str>,
+        access_decision: Option<&str>,
+        error_details: Option<&str>,
     ) {
         let duration_ms = duration.as_millis() as u64;
         let now = SystemTime::now();
@@ -271,6 +297,9 @@ impl DashboardMetrics {
                 success,
                 duration_ms,
                 timestamp,
+                request_id: request_id.map(String::from),
+                access_decision: access_decision.map(String::from),
+                error_details: error_details.map(String::from),
             });
         }
     }

@@ -94,6 +94,7 @@ pub async fn run_dashboard(
         config: app_config,
     };
 
+    // Build router
     let app = Router::new()
         .route("/", get(dashboard_html))
         .route("/api/metrics", get(api_metrics))

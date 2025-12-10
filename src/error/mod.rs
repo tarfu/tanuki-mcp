@@ -4,6 +4,8 @@
 //! We use `thiserror` for library-style errors that are part of the API,
 //! and convert to appropriate MCP error responses at the boundary.
 
+pub mod mcp_mapper;
+
 use thiserror::Error;
 
 /// Top-level application error

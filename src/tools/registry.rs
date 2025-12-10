@@ -13,7 +13,7 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::time::Instant;
-use tracing::{debug, instrument};
+use tracing::{debug, instrument, warn};
 
 /// Compile-time tool registration entry for auto-discovery
 ///
@@ -230,6 +230,34 @@ impl ToolRegistry {
                 ctx.access
                     .is_globally_denied(name, tool.category, tool.operation);
 
+            // Audit log: access denied (log before consuming reason)
+            warn!(
+                tool = %name,
+                project = ?project,
+                reason = %reason,
+                request_id = %ctx.request_id,
+                is_globally_denied = %is_globally_denied,
+                "Access denied to tool"
+            );
+
+            // Convert reason to string for metrics before consuming
+            let reason_str = reason.to_string();
+
+            // Record to metrics with audit info if available
+            if let Some(ref metrics) = ctx.metrics {
+                let duration = start.elapsed();
+                metrics.record_call_with_audit(
+                    name,
+                    tool.category,
+                    project.as_deref(),
+                    duration,
+                    false,
+                    Some(&ctx.request_id),
+                    Some("denied"),
+                    Some(&reason_str),
+                );
+            }
+
             let error = if is_globally_denied {
                 // Tool is completely unavailable
                 AccessDeniedError::globally_unavailable(name)
@@ -249,11 +277,25 @@ impl ToolRegistry {
         // Execute the tool
         let result = tool.handler.call(ctx, args).await;
 
-        // Record metrics if available
+        // Record metrics with audit info if available
         if let Some(ref metrics) = ctx.metrics {
             let duration = start.elapsed();
             let success = result.is_ok() && !result.as_ref().map(|o| o.is_error).unwrap_or(false);
-            metrics.record_call(name, tool.category, project.as_deref(), duration, success);
+            let error_details = if !success {
+                result.as_ref().err().map(|e| e.to_string())
+            } else {
+                None
+            };
+            metrics.record_call_with_audit(
+                name,
+                tool.category,
+                project.as_deref(),
+                duration,
+                success,
+                Some(&ctx.request_id),
+                Some("allowed"),
+                error_details.as_deref(),
+            );
         }
 
         result
