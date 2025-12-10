@@ -16,8 +16,7 @@ async fn wait_for_mr_ready(
     project_path: &str,
     mr_iid: i64,
 ) -> serde_json::Value {
-    // Increased from 10 to 20 iterations to handle slower stdio transport
-    for _ in 0..20 {
+    for _ in 0..common::MAX_POLL_ATTEMPTS {
         let mr = ctx
             .client
             .call_tool_json(
@@ -39,7 +38,7 @@ async fn wait_for_mr_ready(
             return mr;
         }
 
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+        tokio::time::sleep(common::POLL_DELAY).await;
     }
 
     panic!("MR did not become ready within timeout");

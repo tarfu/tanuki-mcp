@@ -36,5 +36,8 @@ pub mod transport;
 // Re-export main types for convenience
 pub use context::{TestContext, TestContextBuilder};
 pub use gitlab::{DEFAULT_GITLAB_PORT, DEFAULT_ROOT_PASSWORD, GitLabConfig, GitLabContainer};
-pub use shared::{SharedMcpClient, SharedPeer, SharedServers, get_shared_servers};
+pub use shared::{
+    SharedMcpClient, SharedPeer, SharedServers, find_binary, generate_config, get_gitlab_url,
+    get_shared_servers, get_token,
+};
 pub use transport::{McpClient, TransportKind};

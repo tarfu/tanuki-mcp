@@ -11,35 +11,9 @@ use rmcp::model::{CallToolRequestParam, CallToolResult};
 use rmcp::service::{Peer, RoleClient, ServiceExt};
 use rmcp::transport::child_process::TokioChildProcess;
 use serde_json::{Value, json};
-use std::path::PathBuf;
+use tanuki_mcp_e2e::shared::{find_binary, get_gitlab_url, get_token};
 use tempfile::TempDir;
 use tokio::process::Command;
-
-/// Helper to find the tanuki-mcp binary.
-fn find_binary() -> Result<PathBuf> {
-    for path in [
-        "target/release/tanuki-mcp",
-        "target/debug/tanuki-mcp",
-        "../target/release/tanuki-mcp",
-        "../target/debug/tanuki-mcp",
-    ] {
-        let p = PathBuf::from(path);
-        if p.exists() {
-            return Ok(p);
-        }
-    }
-    anyhow::bail!("tanuki-mcp binary not found")
-}
-
-/// Helper to get GitLab URL from environment.
-fn get_gitlab_url() -> Result<String> {
-    std::env::var("GITLAB_URL").context("GITLAB_URL not set")
-}
-
-/// Helper to get GitLab token from environment.
-fn get_token() -> Result<String> {
-    std::env::var("GITLAB_TOKEN").context("GITLAB_TOKEN not set")
-}
 
 /// A dedicated MCP client for access control testing.
 struct AccessControlTestClient {

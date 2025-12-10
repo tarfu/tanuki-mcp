@@ -93,7 +93,9 @@ impl TestContext {
         if self.project_path.is_none() {
             self.create_test_project().await?;
         }
-        Ok(self.project_path.clone().unwrap())
+        self.project_path
+            .clone()
+            .context("project_path not set after create_test_project")
     }
 
     /// Get the project ID, creating a test project if needed.
@@ -101,7 +103,8 @@ impl TestContext {
         if self.project_id.is_none() {
             self.create_test_project().await?;
         }
-        Ok(self.project_id.unwrap())
+        self.project_id
+            .context("project_id not set after create_test_project")
     }
 
     /// Cleanup test resources.

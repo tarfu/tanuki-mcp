@@ -424,19 +424,16 @@ async fn test_get_release_evidence(#[case] transport: TransportKind) {
         }
 
         // Parse the response as JSON
-        if let Some(content) = response.content.first() {
-            if let Some(text) = content.raw.as_text() {
-                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text.text) {
-                    if json.is_array() {
-                        if !json.as_array().unwrap().is_empty() {
-                            found_evidence = true;
-                            break;
-                        }
-                        // Empty array, keep trying
-                    }
-                }
-            }
+        if let Some(content) = response.content.first()
+            && let Some(text) = content.raw.as_text()
+            && let Ok(json) = serde_json::from_str::<serde_json::Value>(&text.text)
+            && let Some(array) = json.as_array()
+            && !array.is_empty()
+        {
+            found_evidence = true;
+            break;
         }
+        // Empty array or no valid response, keep trying
     }
 
     // Test passes if either:

@@ -92,33 +92,44 @@ pub struct SharedServers {
     _config_dir: TempDir,
 }
 
-// Safety: SharedServers is safe to share across threads because:
-// - http: Option<SharedHttpClient> contains Peer which is Clone + Send + Sync
-// - stdio: SharedStdioClient uses Arc<TokioMutex<...>>
-// - gitlab: GitLabContainer is Send + Sync
-// - token: String is Send + Sync
-// - _config_dir: TempDir is Send + Sync
-unsafe impl Send for SharedServers {}
-unsafe impl Sync for SharedServers {}
+// Compile-time assertions that all inner types are Send + Sync.
+// These assertions replace unsafe impls by ensuring SharedServers
+// automatically derives Send + Sync from its fields.
+const _: () = {
+    const fn assert_send<T: Send>() {}
+    const fn assert_sync<T: Sync>() {}
+
+    // Verify all field types are Send + Sync
+    assert_send::<Option<SharedHttpClient>>();
+    assert_sync::<Option<SharedHttpClient>>();
+    assert_send::<SharedStdioClient>();
+    assert_sync::<SharedStdioClient>();
+    assert_send::<GitLabContainer>();
+    assert_sync::<GitLabContainer>();
+    assert_send::<String>();
+    assert_sync::<String>();
+    assert_send::<TempDir>();
+    assert_sync::<TempDir>();
+};
 
 impl SharedServers {
     /// Initialize the shared servers.
     async fn init() -> Result<Self> {
         tracing::info!("Initializing shared MCP servers...");
 
-        let gitlab_url = Self::get_gitlab_url()?;
-        let token = Self::get_token()?;
+        let gitlab_url = get_gitlab_url()?;
+        let token = get_token()?;
 
         let gitlab = GitLabContainer::with_config(GitLabConfig::from_url(&gitlab_url));
 
         // Create config directory and file (needed for stdio)
         let config_dir = TempDir::new().context("Failed to create temp directory")?;
         let config_path = config_dir.path().join("config.toml");
-        let config_content = Self::generate_config(&gitlab.config().base_url(), &token);
+        let config_content = generate_config(gitlab.config().base_url(), &token);
         std::fs::write(&config_path, &config_content).context("Failed to write config file")?;
 
         // Find binary (needed for stdio)
-        let binary_path = Self::find_binary()?;
+        let binary_path = find_binary()?;
 
         // HTTP: only connect if MCP_HTTP_URL is set (server managed externally)
         let http = match std::env::var("MCP_HTTP_URL") {
@@ -171,24 +182,30 @@ impl SharedServers {
         &self.token
     }
 
-    /// Get GitLab URL from environment variable.
-    fn get_gitlab_url() -> Result<String> {
-        std::env::var("GITLAB_URL").context(
-            "GITLAB_URL environment variable not set. Run tests via 'task e2e' or set GITLAB_URL manually.",
-        )
+    /// Generate config file content (public for tests).
+    pub fn generate_config_for_test(gitlab_url: &str, token: &str) -> String {
+        generate_config(gitlab_url, token)
     }
+}
 
-    /// Get GitLab token from environment variable.
-    fn get_token() -> Result<String> {
-        std::env::var("GITLAB_TOKEN").context(
-            "GITLAB_TOKEN environment variable not set. Run tests via 'task e2e' or set GITLAB_TOKEN manually.",
-        )
-    }
+/// Get GitLab URL from environment variable.
+pub fn get_gitlab_url() -> Result<String> {
+    std::env::var("GITLAB_URL").context(
+        "GITLAB_URL environment variable not set. Run tests via 'task e2e' or set GITLAB_URL manually.",
+    )
+}
 
-    /// Generate config file content.
-    fn generate_config(gitlab_url: &str, token: &str) -> String {
-        format!(
-            r#"
+/// Get GitLab token from environment variable.
+pub fn get_token() -> Result<String> {
+    std::env::var("GITLAB_TOKEN").context(
+        "GITLAB_TOKEN environment variable not set. Run tests via 'task e2e' or set GITLAB_TOKEN manually.",
+    )
+}
+
+/// Generate config file content.
+pub fn generate_config(gitlab_url: &str, token: &str) -> String {
+    format!(
+        r#"
 [gitlab]
 url = "{gitlab_url}"
 token = "{token}"
@@ -196,33 +213,27 @@ token = "{token}"
 [access_control]
 all = "full"
 "#,
-            gitlab_url = gitlab_url,
-            token = token
-        )
-    }
+        gitlab_url = gitlab_url,
+        token = token
+    )
+}
 
-    /// Generate config file content (public for tests).
-    pub fn generate_config_for_test(gitlab_url: &str, token: &str) -> String {
-        Self::generate_config(gitlab_url, token)
-    }
-
-    /// Find the tanuki-mcp binary.
-    fn find_binary() -> Result<PathBuf> {
-        for path in [
-            "target/release/tanuki-mcp",
-            "target/debug/tanuki-mcp",
-            "../target/release/tanuki-mcp",
-            "../target/debug/tanuki-mcp",
-        ] {
-            let p = PathBuf::from(path);
-            if p.exists() {
-                return Ok(p);
-            }
+/// Find the tanuki-mcp binary.
+pub fn find_binary() -> Result<PathBuf> {
+    for path in [
+        "target/release/tanuki-mcp",
+        "target/debug/tanuki-mcp",
+        "../target/release/tanuki-mcp",
+        "../target/debug/tanuki-mcp",
+    ] {
+        let p = PathBuf::from(path);
+        if p.exists() {
+            return Ok(p);
         }
-        anyhow::bail!(
-            "tanuki-mcp binary not found. Please run 'cargo build' or 'cargo build --release' first."
-        )
     }
+    anyhow::bail!(
+        "tanuki-mcp binary not found. Please run 'cargo build' or 'cargo build --release' first."
+    )
 }
 
 /// Shared HTTP client - peer can be cloned freely for concurrent use.

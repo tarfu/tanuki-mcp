@@ -3,6 +3,13 @@
 #![allow(dead_code)]
 
 use serde_json::Value;
+use std::time::Duration;
+
+/// Maximum attempts when polling for resource readiness.
+pub const MAX_POLL_ATTEMPTS: usize = 20;
+
+/// Delay between poll attempts.
+pub const POLL_DELAY: Duration = Duration::from_secs(1);
 
 /// Initialize tracing for tests.
 pub fn init_tracing() {
@@ -37,30 +44,4 @@ pub fn assert_tool_success(result: &Value) {
 pub fn unique_name(prefix: &str) -> String {
     let uuid = uuid::Uuid::new_v4();
     format!("{}-{}", prefix, uuid.to_string().replace('-', ""))
-}
-
-/// Macro to generate test cases for both transports.
-#[macro_export]
-macro_rules! transport_tests {
-    ($($name:ident: $test_fn:expr,)*) => {
-        $(
-            mod $name {
-                use super::*;
-
-                #[tokio::test]
-                async fn stdio() {
-                    common::init_tracing();
-                    let test_fn = $test_fn;
-                    test_fn(TransportKind::Stdio).await;
-                }
-
-                #[tokio::test]
-                async fn http() {
-                    common::init_tracing();
-                    let test_fn = $test_fn;
-                    test_fn(TransportKind::Http).await;
-                }
-            }
-        )*
-    };
 }

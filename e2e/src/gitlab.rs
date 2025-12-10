@@ -50,8 +50,8 @@ impl GitLabConfig {
     }
 
     /// Get the GitLab base URL.
-    pub fn base_url(&self) -> String {
-        self.base_url.clone()
+    pub fn base_url(&self) -> &str {
+        &self.base_url
     }
 
     /// Get the GitLab API URL.

@@ -13,6 +13,7 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY tanuki-mcp-macros ./tanuki-mcp-macros
 COPY src ./src
+COPY assets ./assets
 
 # Remove e2e from workspace members (it's not needed for the main binary)
 RUN sed -i 's/members = \[".", "tanuki-mcp-macros", "e2e"\]/members = [".", "tanuki-mcp-macros"]/' Cargo.toml
