@@ -247,6 +247,40 @@ TANUKI_MCP_DASHBOARD__ENABLED=true
   - `read_api` for read operations
   - `api` for full functionality
 
+## Development
+
+### Dependencies
+
+```bash
+# Task runner (https://taskfile.dev)
+brew install go-task
+
+# For release management (cargo set-version)
+cargo install cargo-edit
+```
+
+### Available Tasks
+
+```bash
+task --list        # List all tasks
+task check         # Run all checks (fmt, clippy, test, doc)
+task release       # Create a release (tag + version bump)
+task e2e           # Run E2E tests
+```
+
+### Creating a Release
+
+```bash
+# Tag current version, bump minor (runs check + e2e)
+task release
+
+# Skip E2E tests
+task release SKIP_E2E=true
+
+# Custom version
+task release VERSION=1.0.0 NEXT_VERSION=2.0.0
+```
+
 ## License
 
 MIT

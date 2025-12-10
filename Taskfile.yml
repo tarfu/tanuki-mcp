@@ -232,3 +232,57 @@ tasks:
         else
           echo "GitLab is not ready yet"
         fi
+
+  # Release Management
+  # Requires: go-task (brew install go-task), cargo-edit (cargo install cargo-edit)
+  release:
+    desc: Create a release (tag current version, bump to next)
+    vars:
+      # Read current version using cargo pkgid
+      CURRENT_VERSION:
+        sh: cargo pkgid | cut -d "@" -f2
+      # Use provided VERSION or default to current
+      VERSION: '{{.VERSION | default .CURRENT_VERSION}}'
+      # Calculate next version (bump minor) or use provided NEXT_VERSION
+      NEXT_VERSION:
+        sh: |
+          if [ -n "{{.NEXT_VERSION}}" ]; then
+            echo "{{.NEXT_VERSION}}"
+          else
+            echo "{{.VERSION}}" | awk -F. '{print $1"."$2+1".0"}'
+          fi
+      # E2E tests enabled by default, can be disabled with SKIP_E2E=true
+      SKIP_E2E: '{{.SKIP_E2E | default "false"}}'
+    cmds:
+      - |
+        echo "=== Release v{{.VERSION}} ==="
+        echo "Next version: {{.NEXT_VERSION}}"
+        echo ""
+      # Verify we're on a clean git state
+      - |
+        git diff --quiet || (echo "ERROR: Working directory not clean" && exit 1)
+      # Run checks
+      - echo "Running checks..."
+      - task: check
+      # Run E2E tests (optional)
+      - |
+        if [ "{{.SKIP_E2E}}" = "false" ]; then
+          echo "Running E2E tests..."
+          task e2e
+        else
+          echo "Skipping E2E tests (SKIP_E2E=true)"
+        fi
+      # Create the tag
+      - git tag -a "v{{.VERSION}}" -m "Release v{{.VERSION}}"
+      - echo "Created tag v{{.VERSION}}"
+      # Update all workspace Cargo.toml versions using cargo set-version
+      - cargo set-version {{.NEXT_VERSION}}
+      # Commit the version bump
+      - git add Cargo.toml tanuki-mcp-macros/Cargo.toml e2e/Cargo.toml
+      - 'git commit -m "chore: bump version to {{.NEXT_VERSION}} for next development cycle"'
+      - 'echo "Bumped version to {{.NEXT_VERSION}}"'
+      - echo ""
+      - echo "=== Release created successfully ==="
+      - echo "To complete the release, push the tag and commit:"
+      - echo "  git push origin main"
+      - echo "  git push origin v{{.VERSION}}"
