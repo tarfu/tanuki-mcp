@@ -32,7 +32,7 @@ Each tool is classified by what type of operation it performs:
 
 ## Tool Categories
 
-Tools are organized into 21 categories:
+Tools are organized into 20 categories:
 
 | Category | Tools | Description |
 |----------|-------|-------------|
@@ -54,7 +54,6 @@ Tools are organized into 21 categories:
 | `releases` | 6 | Release management |
 | `users` | 2 | User operations |
 | `groups` | 2 | Group operations |
-| `graphql` | 1 | GraphQL queries |
 | `tags` | 9 | Git tag operations |
 | `search` | 5 | Search operations |
 

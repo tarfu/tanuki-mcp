@@ -53,9 +53,10 @@ tanuki-mcp [OPTIONS]
 
 Options:
     --config <PATH>       Path to configuration file
-    --http                Use HTTP/SSE transport instead of stdio
+    --http                Use HTTP transport (Streamable HTTP) instead of stdio
     --host <HOST>         HTTP server host [default: 127.0.0.1]
     --port <PORT>         HTTP server port [default: 20289]
+    --log-level <LEVEL>   Log level (trace, debug, info, warn, error) [default: info]
     --no-dashboard        Disable the web dashboard
     --dashboard-host      Dashboard host [default: 127.0.0.1]
     --dashboard-port      Dashboard port [default: 19892]
@@ -78,7 +79,7 @@ version = "0.1.0"
 
 # Transport mode: "stdio" or "http"
 # - stdio: Standard input/output (for Claude Code integration)
-# - http: HTTP with Server-Sent Events (for web clients)
+# - http: Streamable HTTP (for web clients and programmatic access)
 transport = "stdio"
 
 # HTTP server settings (only used when transport = "http")
@@ -205,9 +206,9 @@ Configure in Claude Code's MCP settings:
 }
 ```
 
-### HTTP/SSE
+### HTTP (Streamable HTTP)
 
-HTTP transport with Server-Sent Events for web clients.
+HTTP transport using Streamable HTTP protocol for web clients and programmatic access.
 
 ```bash
 # Run with HTTP transport
@@ -216,6 +217,10 @@ tanuki-mcp --http
 # With custom host/port
 tanuki-mcp --http --host 0.0.0.0 --port 8080
 ```
+
+**Endpoints:**
+- `/mcp` - MCP protocol endpoint (Streamable HTTP)
+- `/health` - Health check endpoint (`{"status": "ok"}`)
 
 ## Dashboard
 
@@ -246,6 +251,33 @@ If the configured port is in use, the server will:
 2. Fall back to OS-assigned port
 
 The actual port is logged on startup.
+
+## Prompts
+
+tanuki-mcp includes built-in prompts for common GitLab workflows:
+
+| Prompt | Description | Arguments |
+|--------|-------------|-----------|
+| `analyze_issue` | Analyze an issue with full context (discussions, related MRs) | `project`, `issue_iid` |
+| `review_merge_request` | Review an MR with changes and discussions | `project`, `mr_iid` |
+
+Prompts are always available when the underlying tools have access. Their access follows the same rules as the tools they use internally (e.g., `analyze_issue` requires read access to issues and merge requests).
+
+## Resources
+
+tanuki-mcp supports reading GitLab repository files using the `gitlab://` URI scheme:
+
+```
+gitlab://{project}/{file_path}?ref={branch}
+```
+
+- **project**: URL-encoded project path (e.g., `group%2Fproject`)
+- **file_path**: Path to file in repository
+- **ref**: Optional git reference (branch, tag, commit) - defaults to HEAD
+
+**Examples:**
+- `gitlab://group%2Fproject/README.md` - Read README from default branch
+- `gitlab://group%2Fproject/src/main.rs?ref=develop` - Read file from develop branch
 
 ## Examples
 

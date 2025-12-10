@@ -6,12 +6,46 @@ Inspired by [zereight/gitlab-mcp](https://github.com/zereight/gitlab-mcp).
 
 ## Features
 
-- **120 GitLab Tools** across 21 categories
+- **121 GitLab Tools** across 20 categories
+- **Built-in Prompts** for issue analysis and MR review workflows
+- **Resource Access** via `gitlab://` URI scheme for file reading
 - **Fine-Grained Access Control** with hierarchical overrides
-- **Two Transport Modes**: stdio (for Claude Code) and HTTP/SSE
+- **Two Transport Modes**: stdio (Claude Code) and HTTP (Streamable HTTP)
 - **Real-Time Dashboard** for monitoring usage
 - **Project-Specific Permissions** for granular control
 - **Pattern-Based Rules** using regex for allow/deny lists
+
+## MCP Capabilities
+
+tanuki-mcp implements the full MCP specification with tools, prompts, and resources.
+
+### Prompts
+
+Built-in workflow prompts for common GitLab tasks:
+
+| Prompt | Description | Arguments |
+|--------|-------------|-----------|
+| `analyze_issue` | Analyze an issue with discussions and related MRs | `project`, `issue_iid` |
+| `review_merge_request` | Review an MR with changes and discussions | `project`, `mr_iid` |
+
+**Usage in Claude Code:**
+```
+Use the analyze_issue prompt for project "group/repo" issue 42
+```
+
+### Resources
+
+Read GitLab repository files using the `gitlab://` URI scheme:
+
+```
+gitlab://{project}/{file_path}?ref={branch}
+```
+
+**Examples:**
+- `gitlab://group%2Fproject/README.md` - Default branch
+- `gitlab://group%2Fproject/src/main.rs?ref=develop` - Specific branch
+
+Note: Project path must be URL-encoded (`/` → `%2F`)
 
 ## Quick Start
 
@@ -37,7 +71,7 @@ docker run -d \
 
 ```bash
 # Download from releases
-curl -LO https://github.com/yourusername/tanuki-mcp/releases/latest/download/tanuki-mcp
+curl -LO https://github.com/tarfu/tanuki-mcp/releases/latest/download/tanuki-mcp
 chmod +x tanuki-mcp
 
 # Set token and run
@@ -48,7 +82,7 @@ export TANUKI_MCP_GITLAB__TOKEN=glpat-xxx
 ### Building from Source
 
 ```bash
-git clone https://github.com/yourusername/tanuki-mcp
+git clone https://github.com/tarfu/tanuki-mcp
 cd tanuki-mcp
 cargo build --release
 ./target/release/tanuki-mcp
@@ -132,7 +166,6 @@ See [docs/ACCESS_CONTROL.md](docs/ACCESS_CONTROL.md) for detailed documentation.
 | releases | 6 | Releases |
 | users | 2 | Users |
 | groups | 2 | Groups |
-| graphql | 1 | GraphQL |
 | tags | 9 | Git tags |
 | search | 5 | Search |
 
@@ -156,13 +189,17 @@ For integration with Claude Code:
 }
 ```
 
-### HTTP/SSE
+### HTTP (Streamable HTTP)
 
-For web clients:
+For web clients and programmatic access:
 
 ```bash
 tanuki-mcp --http --host 0.0.0.0 --port 8080
 ```
+
+**Endpoints:**
+- `/mcp` - MCP protocol (Streamable HTTP)
+- `/health` - Health check (`{"status": "ok"}`)
 
 ## Dashboard
 
@@ -190,6 +227,18 @@ TANUKI_MCP_SERVER__TRANSPORT=http
 TANUKI_MCP_ACCESS_CONTROL__ALL=read
 TANUKI_MCP_DASHBOARD__ENABLED=true
 ```
+
+## CLI Arguments
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--config`, `-c` | Configuration file path | Auto-detected |
+| `--http` | Use HTTP transport instead of stdio | false |
+| `--host` | HTTP server bind address | 127.0.0.1 |
+| `--port` | HTTP server port | 20289 |
+| `--log-level` | Log level (trace, debug, info, warn, error) | info |
+| `--no-dashboard` | Disable the monitoring dashboard | false |
+| `--dashboard-port` | Dashboard server port | 19892 |
 
 ## Requirements
 

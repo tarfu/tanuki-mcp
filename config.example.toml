@@ -88,6 +88,11 @@ all = "read"
 #   - releases: Release management (6 tools)
 #   - users: User operations (2 tools)
 #   - groups: Group operations (2 tools)
+#   - tags: Git tag operations (9 tools)
+#   - search: Search operations (5 tools)
+#
+# Note: Prompts (analyze_issue, review_merge_request) and Resources
+# (gitlab:// URIs) are always available when underlying tools have access.
 
 [access_control.categories.issues]
 level = "full"
@@ -143,6 +148,12 @@ level = "read"
 level = "read"
 
 [access_control.categories.groups]
+level = "read"
+
+[access_control.categories.tags]
+level = "read"
+
+[access_control.categories.search]
 level = "read"
 
 # =============================================================================
