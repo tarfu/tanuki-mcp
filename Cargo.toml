@@ -5,7 +5,7 @@ resolver = "2"
 
 [package]
 name = "tanuki-mcp"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 description = "A GitLab MCP server with fine-grained access control"
 license = "MIT"
@@ -73,7 +73,7 @@ shellexpand = "3"
 inventory = "0.3"
 
 # Our proc macro crate
-tanuki-mcp-macros = { version = "0.1.1", path = "tanuki-mcp-macros" }
+tanuki-mcp-macros = { version = "0.2.0", path = "tanuki-mcp-macros" }
 
 [dev-dependencies]
 tokio-test = "0.4"
