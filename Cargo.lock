@@ -2093,7 +2093,7 @@ dependencies = [
 
 [[package]]
 name = "tanuki-mcp"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2130,7 +2130,7 @@ dependencies = [
 
 [[package]]
 name = "tanuki-mcp-e2e"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "reqwest",
@@ -2149,7 +2149,7 @@ dependencies = [
 
 [[package]]
 name = "tanuki-mcp-macros"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "darling",
  "proc-macro2",
