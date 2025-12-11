@@ -116,7 +116,7 @@ jobs:
   # Publish to crates.io
   publish:
     name: Publish to crates.io
-    needs: ci
+    needs: build-binaries
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
