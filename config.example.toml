@@ -32,6 +32,8 @@ timeout_secs = 30
 max_retries = 3
 # Verify SSL certificates
 verify_ssl = true
+# Custom User-Agent header (optional, default: "tanuki-mcp/<version>")
+# user_agent = "my-custom-agent/1.0"
 
 # =============================================================================
 # Access Control

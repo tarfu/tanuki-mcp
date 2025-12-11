@@ -72,6 +72,10 @@ pub struct GitLabConfig {
 
     /// Whether to verify SSL certificates
     pub verify_ssl: bool,
+
+    /// Custom User-Agent header (default: "tanuki-mcp/<version>")
+    #[serde(default)]
+    pub user_agent: Option<String>,
 }
 
 impl Default for GitLabConfig {
@@ -83,6 +87,7 @@ impl Default for GitLabConfig {
             timeout_secs: 30,
             max_retries: 3,
             verify_ssl: true,
+            user_agent: None,
         }
     }
 }

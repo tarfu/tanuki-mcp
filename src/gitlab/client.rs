@@ -28,7 +28,12 @@ impl GitLabClient {
             .pool_max_idle_per_host(10)
             .pool_idle_timeout(Duration::from_secs(90))
             .danger_accept_invalid_certs(!config.verify_ssl)
-            .user_agent(format!("tanuki-mcp/{}", env!("CARGO_PKG_VERSION")))
+            .user_agent(
+                config
+                    .user_agent
+                    .clone()
+                    .unwrap_or_else(|| format!("tanuki-mcp/{}", env!("CARGO_PKG_VERSION"))),
+            )
             .build()
             .map_err(GitLabError::Request)?;
 

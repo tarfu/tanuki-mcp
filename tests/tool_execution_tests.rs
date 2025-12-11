@@ -21,6 +21,7 @@ fn create_test_gitlab(mock_server: &MockServer) -> Arc<GitLabClient> {
         timeout_secs: 30,
         max_retries: 0,
         verify_ssl: true,
+        user_agent: None,
     };
     let auth = PatProvider::new("test-token".to_string()).unwrap();
     Arc::new(GitLabClient::new(&config, Box::new(auth)).unwrap())

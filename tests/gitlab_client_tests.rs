@@ -17,6 +17,7 @@ fn create_test_client(mock_server: &MockServer, token: &str) -> GitLabClient {
         timeout_secs: 30,
         max_retries: 0, // No retries for tests
         verify_ssl: true,
+        user_agent: None,
     };
     let auth = PatProvider::new(token.to_string()).unwrap();
     GitLabClient::new(&config, Box::new(auth)).unwrap()

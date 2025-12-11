@@ -32,6 +32,7 @@ fn create_test_config(gitlab_url: &str) -> AppConfig {
             timeout_secs: 30,
             max_retries: 0,
             verify_ssl: true,
+            user_agent: None,
         },
         access_control: AccessControlConfig::default(),
         logging: LoggingConfig::default(),

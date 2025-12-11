@@ -28,7 +28,7 @@ async-trait = "0.1"
 # HTTP client for GitLab API
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 
-# HTTP server for SSE transport
+# HTTP server for streaming HTTP
 axum = { version = "0.8", features = ["json"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
