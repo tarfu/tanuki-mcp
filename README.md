@@ -79,6 +79,22 @@ export TANUKI_MCP_GITLAB__TOKEN=glpat-xxx
 ./tanuki-mcp
 ```
 
+### Using cargo-binstall (Recommended)
+
+```bash
+# Install cargo-binstall if needed
+cargo install cargo-binstall
+
+# Install tanuki-mcp (downloads pre-built binary)
+cargo binstall tanuki-mcp
+```
+
+### From crates.io
+
+```bash
+cargo install tanuki-mcp
+```
+
 ### Building from Source
 
 ```bash
