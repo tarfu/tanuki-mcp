@@ -100,7 +100,10 @@ impl ToolExecutor for ListMergeRequests {
 // get_merge_request
 // ============================================================================
 
-/// Get detailed information about a specific merge request
+/// Get detailed information about a specific merge request.
+///
+/// Note: Avoid setting `include_changes` to true as it can return enormous amounts of data.
+/// Use `get_merge_request_diffs` for reviewing changes - it supports pagination.
 #[gitlab_tool(
     name = "get_merge_request",
     category = "merge_requests",
@@ -118,9 +121,11 @@ pub struct GetMergeRequest {
     #[serde(default)]
     pub include_commits: Option<bool>,
 
-    /// Include changes/diffs in response
+    /// Include changes/diffs in response (default: false).
+    /// WARNING: This can return very large amounts of data and should generally be false.
+    /// Use `get_merge_request_diffs` instead if you need to review changes, as it supports pagination.
     #[serde(default)]
-    pub include_changes: Option<bool>,
+    pub include_changes: bool,
 }
 
 #[async_trait]
@@ -129,7 +134,7 @@ impl ToolExecutor for GetMergeRequest {
         let project = GitLabClient::encode_project(&self.project);
 
         // Choose endpoint based on what data is requested
-        let endpoint = if self.include_changes == Some(true) {
+        let endpoint = if self.include_changes {
             format!(
                 "/projects/{}/merge_requests/{}/changes",
                 project, self.merge_request_iid
