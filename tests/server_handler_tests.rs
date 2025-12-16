@@ -9,6 +9,7 @@ use tanuki_mcp::config::{
 };
 use tanuki_mcp::gitlab::GitLabClient;
 use tanuki_mcp::server::GitLabMcpHandler;
+use tanuki_mcp::update::UpdateConfig;
 
 use serde_json::json;
 use std::sync::Arc;
@@ -37,6 +38,7 @@ fn create_test_config(gitlab_url: &str) -> AppConfig {
         access_control: AccessControlConfig::default(),
         logging: LoggingConfig::default(),
         dashboard: DashboardConfigToml::default(),
+        updates: UpdateConfig::default(),
     }
 }
 

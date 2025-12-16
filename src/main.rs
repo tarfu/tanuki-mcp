@@ -2,7 +2,7 @@
 //!
 //! A Model Context Protocol server for GitLab with fine-grained access control.
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use std::sync::Arc;
 use tanuki_mcp::{
     access_control::AccessResolver,
@@ -12,6 +12,7 @@ use tanuki_mcp::{
     gitlab::GitLabClient,
     server::GitLabMcpHandler,
     transport::{DEFAULT_HTTP_PORT, HttpConfig, run_http_blocking, run_stdio},
+    update::{UpdateChecker, UpdateManager},
 };
 use tracing::{error, info};
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
@@ -21,6 +22,9 @@ use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 #[command(name = "tanuki-mcp")]
 #[command(version, about, long_about = None)]
 struct Args {
+    #[command(subcommand)]
+    command: Option<Commands>,
+
     /// Path to configuration file
     #[arg(short, long, env = "TANUKI_MCP_CONFIG")]
     config: Option<String>,
@@ -54,6 +58,23 @@ struct Args {
     dashboard_port: u16,
 }
 
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Update tanuki-mcp to the latest version
+    Update {
+        /// Only check for updates, don't install
+        #[arg(long)]
+        check: bool,
+
+        /// Skip confirmation prompt
+        #[arg(short, long)]
+        yes: bool,
+    },
+
+    /// Show version information
+    Version,
+}
+
 fn create_handler(
     config: &AppConfig,
     gitlab: Arc<GitLabClient>,
@@ -71,10 +92,76 @@ fn create_handler_with_metrics(
     GitLabMcpHandler::new_with_metrics(config, gitlab, access, metrics)
 }
 
+/// Handle the update command
+fn handle_update_command(check_only: bool, skip_confirm: bool) -> anyhow::Result<()> {
+    let mgr = UpdateManager::new();
+
+    println!("Checking for updates...");
+
+    match mgr.check_for_updates() {
+        Ok(Some(info)) => {
+            println!(
+                "Update available: v{} -> v{}",
+                info.current_version, info.latest_version
+            );
+
+            if check_only {
+                println!();
+                println!("Run 'tanuki-mcp update' to install the update.");
+                return Ok(());
+            }
+
+            // Perform the update
+            let new_version = if skip_confirm {
+                mgr.update_no_confirm()?
+            } else {
+                mgr.update()?
+            };
+
+            println!();
+            println!("Updated to v{}", new_version);
+            println!();
+            println!("Restart tanuki-mcp to use the new version:");
+            println!("  - Stdio mode: Restart Claude Code or reload MCP servers");
+            println!("  - HTTP mode: Restart the tanuki-mcp process");
+        }
+        Ok(None) => {
+            println!("Already up to date (v{})", mgr.current_version());
+        }
+        Err(e) => {
+            eprintln!("Failed to check for updates: {}", e);
+            return Err(e.into());
+        }
+    }
+
+    Ok(())
+}
+
+/// Handle the version command
+fn handle_version_command() {
+    println!("tanuki-mcp v{}", env!("CARGO_PKG_VERSION"));
+    println!("Platform: {}", self_update::get_target());
+    println!();
+    println!("Run 'tanuki-mcp update --check' to check for updates.");
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Parse CLI arguments
     let args = Args::parse();
+
+    // Handle subcommands that don't need full initialization
+    if let Some(command) = &args.command {
+        match command {
+            Commands::Update { check, yes } => {
+                return handle_update_command(*check, *yes);
+            }
+            Commands::Version => {
+                handle_version_command();
+                return Ok(());
+            }
+        }
+    }
 
     // Initialize logging
     let filter =
@@ -93,6 +180,10 @@ async fn main() -> anyhow::Result<()> {
     // Load configuration
     let config = load_config(args.config.as_deref())
         .inspect_err(|e| error!(error = %e, "Failed to load configuration"))?;
+
+    // Check for updates in background
+    let update_checker = UpdateChecker::new(&config.updates);
+    update_checker.check_in_background();
 
     // Create auth provider
     let auth = create_auth_provider(&config.gitlab)

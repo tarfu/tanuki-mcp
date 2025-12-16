@@ -47,6 +47,7 @@ pub mod gitlab;
 pub mod server;
 pub mod tools;
 pub mod transport;
+pub mod update;
 pub mod util;
 
 // Re-export main types

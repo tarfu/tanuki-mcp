@@ -4,6 +4,7 @@
 
 use crate::config::AppConfig;
 use crate::dashboard::metrics::{DashboardMetrics, MetricsSnapshot};
+use crate::update::UpdateManager;
 use crate::util::find_available_port;
 use axum::{
     Json, Router,
@@ -68,6 +69,14 @@ struct ConfigInfo {
     tool_count: usize,
 }
 
+/// Update status for the API
+#[derive(Serialize)]
+struct UpdateStatus {
+    current_version: String,
+    latest_version: Option<String>,
+    update_available: bool,
+}
+
 /// Run the dashboard server
 ///
 /// Port discovery is used to find an available port if the configured port is taken.
@@ -99,6 +108,7 @@ pub async fn run_dashboard(
         .route("/", get(dashboard_html))
         .route("/api/metrics", get(api_metrics))
         .route("/api/config", get(move |s| api_config(s, tool_count)))
+        .route("/api/update", get(api_update))
         .route("/assets/style.css", get(serve_css))
         .route("/assets/app.js", get(serve_js))
         .with_state(state);
@@ -131,6 +141,25 @@ async fn api_config(State(state): State<DashboardState>, tool_count: usize) -> J
         transport_mode: format!("{:?}", config.server.transport),
         access_level: format!("{:?}", config.access_control.all),
         tool_count,
+    })
+}
+
+/// API endpoint for update status
+async fn api_update() -> Json<UpdateStatus> {
+    let mgr = UpdateManager::new();
+    let current_version = mgr.current_version().to_string();
+
+    // Check for updates (this may take a moment)
+    let (latest_version, update_available) = match mgr.check_for_updates() {
+        Ok(Some(info)) => (Some(info.latest_version), true),
+        Ok(None) => (Some(current_version.clone()), false),
+        Err(_) => (None, false),
+    };
+
+    Json(UpdateStatus {
+        current_version,
+        latest_version,
+        update_available,
     })
 }
 

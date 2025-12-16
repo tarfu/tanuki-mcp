@@ -4,20 +4,26 @@
 //! (highest to lowest):
 //! 1. Environment variables (TANUKI_MCP__*)
 //! 2. GitLab fallback environment variables (GITLAB_TOKEN, GITLAB_URL, etc.)
-//! 3. Configuration file (TOML)
-//! 4. Default values
+//! 3. Project config file (`./tanuki-mcp.toml` or `./.tanuki-mcp.toml`)
+//! 4. User config file (`~/.config/tanuki-mcp/config.toml`)
+//! 5. System config file (`/etc/tanuki-mcp/config.toml`)
+//! 6. Default values
+//!
+//! All existing config files are merged together, with later sources
+//! overriding earlier ones.
 
 use crate::config::types::AppConfig;
 use crate::error::ConfigError;
 use config::{Config, Environment, File, FileFormat};
 use std::path::Path;
 
-/// Default configuration file paths to check (in order)
-const DEFAULT_CONFIG_PATHS: &[&str] = &[
-    "tanuki-mcp.toml",
-    ".tanuki-mcp.toml",
-    "~/.config/tanuki-mcp/config.toml",
-    "/etc/tanuki-mcp/config.toml",
+/// Configuration file paths in order of priority (lowest to highest).
+/// All existing files are loaded and merged together.
+const CONFIG_PATHS_BY_PRIORITY: &[&str] = &[
+    "/etc/tanuki-mcp/config.toml",      // system defaults (lowest priority)
+    "~/.config/tanuki-mcp/config.toml", // user config
+    ".tanuki-mcp.toml",                 // project config (hidden)
+    "tanuki-mcp.toml",                  // project config (highest file priority)
 ];
 
 /// Load configuration from a TOML string (useful for testing)
@@ -43,9 +49,9 @@ pub fn load_config(config_path: Option<&str>) -> Result<AppConfig, ConfigError> 
 
     // 1. Start with defaults (handled by serde defaults on AppConfig)
 
-    // 2. Add configuration file
+    // 2. Add configuration files (all existing files are merged)
     if let Some(path) = config_path {
-        // Explicit path provided - must exist
+        // Explicit path provided - must exist, and is the ONLY file loaded
         if !Path::new(path).exists() {
             return Err(ConfigError::Load(format!(
                 "Configuration file not found: {}",
@@ -54,12 +60,13 @@ pub fn load_config(config_path: Option<&str>) -> Result<AppConfig, ConfigError> 
         }
         builder = builder.add_source(File::new(path, FileFormat::Toml));
     } else {
-        // Try default paths (first existing one wins)
-        for path in DEFAULT_CONFIG_PATHS {
+        // Load all existing config files (lowest to highest priority)
+        // Later files override earlier ones
+        for path in CONFIG_PATHS_BY_PRIORITY {
             let expanded = shellexpand::tilde(path);
             if Path::new(expanded.as_ref()).exists() {
                 builder = builder.add_source(File::new(&expanded, FileFormat::Toml));
-                break;
+                // Continue to add all existing files (no break)
             }
         }
     }

@@ -165,11 +165,31 @@ async function fetchConfig() {
     }
 }
 
+// Check for updates
+async function checkForUpdates() {
+    try {
+        const response = await fetch('/api/update');
+        const status = await response.json();
+
+        if (status.update_available && status.latest_version) {
+            document.getElementById('current-ver').textContent = 'v' + status.current_version;
+            document.getElementById('latest-ver').textContent = 'v' + status.latest_version;
+            document.getElementById('update-banner').style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Failed to check for updates:', error);
+    }
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     fetchConfig();
     fetchMetrics();
+    checkForUpdates();
 
-    // Refresh every 2 seconds
+    // Refresh metrics every 2 seconds
     setInterval(fetchMetrics, 2000);
+
+    // Check for updates every 30 minutes
+    setInterval(checkForUpdates, 30 * 60 * 1000);
 });

@@ -3,6 +3,7 @@
 //! This module defines the configuration structure that can be loaded from
 //! TOML files and/or environment variables.
 
+use crate::update::UpdateConfig;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -24,6 +25,9 @@ pub struct AppConfig {
 
     /// Dashboard configuration
     pub dashboard: DashboardConfigToml,
+
+    /// Update configuration
+    pub updates: UpdateConfig,
 }
 
 /// Dashboard configuration (TOML format)
