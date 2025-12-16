@@ -1,6 +1,6 @@
 [package]
 name = "tanuki-mcp-e2e"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 publish = false
 description = "End-to-end tests for tanuki-mcp"
