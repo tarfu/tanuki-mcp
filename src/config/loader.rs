@@ -93,12 +93,12 @@ pub fn load_config(config_path: Option<&str>) -> Result<AppConfig, ConfigError> 
 
     // 5. Handle GITLAB_URL if set (common convention)
     // Only use this if TANUKI_MCP__GITLAB_URL is not set
-    if std::env::var("TANUKI_MCP__GITLAB_URL").is_err() {
-        if let Ok(url) = std::env::var("GITLAB_URL") {
-            builder = builder
-                .set_override("gitlab.url", url)
-                .map_err(|e| ConfigError::Load(e.to_string()))?;
-        }
+    if std::env::var("TANUKI_MCP__GITLAB_URL").is_err()
+        && let Ok(url) = std::env::var("GITLAB_URL")
+    {
+        builder = builder
+            .set_override("gitlab.url", url)
+            .map_err(|e| ConfigError::Load(e.to_string()))?;
     }
 
     // Build and deserialize

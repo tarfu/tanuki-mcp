@@ -235,32 +235,53 @@ tasks:
 
   # Release Management
   # Requires: go-task (brew install go-task), cargo-edit (cargo install cargo-edit)
+  #
+  # Usage:
+  #   task release VERSION=patch   # 0.1.1 → 0.1.2
+  #   task release VERSION=minor   # 0.1.1 → 0.2.0
+  #   task release VERSION=major   # 0.1.1 → 1.0.0
+  #   task release VERSION=0.2.5   # explicit version
   release:
-    desc: Create a release (tag current version, bump to next)
+    desc: "Create a release. Usage: task release VERSION=patch|minor|major|x.y.z"
     vars:
       # Read current version using cargo pkgid
       CURRENT_VERSION:
         sh: cargo pkgid | cut -d "@" -f2
-      # Use provided VERSION or default to current
-      VERSION: '{{.VERSION | default .CURRENT_VERSION}}'
-      # Calculate next version (bump minor) or use provided NEXT_VERSION
-      NEXT_VERSION:
+      # Parse current version parts
+      MAJOR:
+        sh: echo "{{.CURRENT_VERSION}}" | cut -d. -f1
+      MINOR:
+        sh: echo "{{.CURRENT_VERSION}}" | cut -d. -f2
+      PATCH:
+        sh: echo "{{.CURRENT_VERSION}}" | cut -d. -f3
+      # Calculate release version based on VERSION parameter
+      RELEASE_VERSION:
         sh: |
-          if [ -n "{{.NEXT_VERSION}}" ]; then
-            echo "{{.NEXT_VERSION}}"
-          else
-            echo "{{.VERSION}}" | awk -F. '{print $1"."$2+1".0"}'
-          fi
+          case "{{.VERSION}}" in
+            patch) echo "{{.MAJOR}}.{{.MINOR}}.$(({{.PATCH}}+1))" ;;
+            minor) echo "{{.MAJOR}}.$(({{.MINOR}}+1)).0" ;;
+            major) echo "$(({{.MAJOR}}+1)).0.0" ;;
+            *) echo "{{.VERSION}}" ;;
+          esac
       # E2E tests enabled by default, can be disabled with SKIP_E2E=true
       SKIP_E2E: '{{.SKIP_E2E | default "false"}}'
+    preconditions:
+      - sh: '[ -n "{{.VERSION}}" ]'
+        msg: "VERSION is required. Use: patch, minor, major, or explicit version (e.g., 0.2.0)"
     cmds:
       - |
-        echo "=== Release v{{.VERSION}} ==="
-        echo "Next version: {{.NEXT_VERSION}}"
+        echo "=== Release v{{.RELEASE_VERSION}} ==="
+        echo "Current version: {{.CURRENT_VERSION}}"
         echo ""
       # Verify we're on a clean git state
       - |
         git diff --quiet || (echo "ERROR: Working directory not clean" && exit 1)
+      # Bump version in all Cargo.toml files
+      - echo "Bumping version to {{.RELEASE_VERSION}}..."
+      - cargo set-version {{.RELEASE_VERSION}}
+      # Commit the version bump
+      - git add Cargo.toml tanuki-mcp-macros/Cargo.toml e2e/Cargo.toml Cargo.lock
+      - 'git commit -m "chore: release v{{.RELEASE_VERSION}}"'
       # Run checks
       - echo "Running checks..."
       - task: check
@@ -273,16 +294,10 @@ tasks:
           echo "Skipping E2E tests (SKIP_E2E=true)"
         fi
       # Create the tag
-      - git tag -a "v{{.VERSION}}" -m "Release v{{.VERSION}}"
-      - echo "Created tag v{{.VERSION}}"
-      # Update all workspace Cargo.toml versions using cargo set-version
-      - cargo set-version {{.NEXT_VERSION}}
-      # Commit the version bump
-      - git add Cargo.toml tanuki-mcp-macros/Cargo.toml e2e/Cargo.toml
-      - 'git commit -m "chore: bump version to {{.NEXT_VERSION}} for next development cycle"'
-      - 'echo "Bumped version to {{.NEXT_VERSION}}"'
+      - git tag -a "v{{.RELEASE_VERSION}}" -m "Release v{{.RELEASE_VERSION}}"
+      - echo "Created tag v{{.RELEASE_VERSION}}"
       - echo ""
-      - echo "=== Release created successfully ==="
+      - echo "=== Release v{{.RELEASE_VERSION}} created successfully ==="
       - echo "To complete the release, push the tag and commit:"
       - echo "  git push origin main"
-      - echo "  git push origin v{{.VERSION}}"
+      - echo "  git push origin v{{.RELEASE_VERSION}}"
