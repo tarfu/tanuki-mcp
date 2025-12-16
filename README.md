@@ -54,16 +54,16 @@ Note: Project path must be URL-encoded (`/` → `%2F`)
 ```bash
 # Run with stdio transport
 docker run -it --rm \
-  -e TANUKI_MCP_GITLAB__URL=https://gitlab.com \
-  -e TANUKI_MCP_GITLAB__TOKEN=glpat-xxx \
+  -e TANUKI_MCP__GITLAB_URL=https://gitlab.com \
+  -e TANUKI_MCP__GITLAB_TOKEN=glpat-xxx \
   tanuki-mcp
 
 # Run with HTTP transport
 docker run -d \
   -p 20289:20289 \
   -p 19892:19892 \
-  -e TANUKI_MCP_GITLAB__URL=https://gitlab.com \
-  -e TANUKI_MCP_GITLAB__TOKEN=glpat-xxx \
+  -e TANUKI_MCP__GITLAB_URL=https://gitlab.com \
+  -e TANUKI_MCP__GITLAB_TOKEN=glpat-xxx \
   tanuki-mcp --http
 ```
 
@@ -75,7 +75,7 @@ curl -LO https://github.com/tarfu/tanuki-mcp/releases/latest/download/tanuki-mcp
 chmod +x tanuki-mcp
 
 # Set token and run
-export TANUKI_MCP_GITLAB__TOKEN=glpat-xxx
+export TANUKI_MCP__GITLAB_TOKEN=glpat-xxx
 ./tanuki-mcp
 ```
 
@@ -138,7 +138,8 @@ Global Base → Category → Action → Project-Specific
 
 | Level | Description |
 |-------|-------------|
-| `none` | No access |
+| `none` | No access decision at this level |
+| `deny` | Explicitly deny all operations |
 | `read` | Read-only (list, get, search) |
 | `full` | Full access (create, update, delete, execute) |
 
@@ -197,8 +198,8 @@ For integration with Claude Code:
     "tanuki-mcp": {
       "command": "tanuki-mcp",
       "env": {
-        "TANUKI_MCP_GITLAB__URL": "https://gitlab.com",
-        "TANUKI_MCP_GITLAB__TOKEN": "glpat-xxx"
+        "TANUKI_MCP__GITLAB_URL": "https://gitlab.com",
+        "TANUKI_MCP__GITLAB_TOKEN": "glpat-xxx"
       }
     }
   }
@@ -237,11 +238,11 @@ tanuki-mcp --dashboard-port 9000
 ## Environment Variables
 
 ```bash
-TANUKI_MCP_GITLAB__URL=https://gitlab.com
-TANUKI_MCP_GITLAB__TOKEN=glpat-xxx
-TANUKI_MCP_SERVER__TRANSPORT=http
-TANUKI_MCP_ACCESS_CONTROL__ALL=read
-TANUKI_MCP_DASHBOARD__ENABLED=true
+TANUKI_MCP__GITLAB_URL=https://gitlab.com
+TANUKI_MCP__GITLAB_TOKEN=glpat-xxx
+TANUKI_MCP__SERVER_TRANSPORT=http
+TANUKI_MCP__ACCESS_CONTROL_ALL=read
+TANUKI_MCP__DASHBOARD_ENABLED=true
 ```
 
 ## CLI Arguments

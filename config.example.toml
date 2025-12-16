@@ -103,10 +103,10 @@ level = "full"
 level = "full"
 
 [access_control.categories.issue_links]
-level = "write"
+level = "full"
 
 [access_control.categories.merge_requests]
-level = "write"
+level = "full"
 deny = ["merge_merge_request"]    # Prevent auto-merging
 
 [access_control.categories.mr_discussions]
@@ -131,17 +131,17 @@ level = "read"
 level = "read"
 
 [access_control.categories.labels]
-level = "write"
+level = "full"
 
 [access_control.categories.wiki]
-level = "write"
+level = "full"
 
 [access_control.categories.pipelines]
 level = "read"
 allow = ["create_pipeline", "retry_pipeline_job"]
 
 [access_control.categories.milestones]
-level = "write"
+level = "full"
 
 [access_control.categories.releases]
 level = "read"

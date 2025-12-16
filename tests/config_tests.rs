@@ -176,3 +176,166 @@ deny = ["[invalid"]
     let result = load_config_from_str(config_str);
     assert!(result.is_err());
 }
+
+#[test]
+#[serial_test::serial]
+fn test_env_var_priority_tanuki_mcp_over_gitlab_token() {
+    use std::env;
+    use std::fs;
+    use tanuki_mcp::config::load_config;
+    use tempfile::tempdir;
+
+    // Create a temporary config file without a token
+    let dir = tempdir().unwrap();
+    let config_path = dir.path().join("test-config.toml");
+    let config_content = r#"
+[gitlab]
+url = "https://gitlab.com"
+
+[access_control]
+all = "read"
+"#;
+    fs::write(&config_path, config_content).unwrap();
+
+    // Set both TANUKI_MCP__GITLAB_TOKEN and GITLAB_TOKEN
+    unsafe {
+        env::set_var("TANUKI_MCP__GITLAB_TOKEN", "tanuki-priority-token");
+        env::set_var("GITLAB_TOKEN", "gitlab-fallback-token");
+    }
+
+    // Load config
+    let config = load_config(Some(config_path.to_str().unwrap())).unwrap();
+
+    // TANUKI_MCP__GITLAB_TOKEN should take precedence
+    assert_eq!(
+        config.gitlab.token,
+        Some("tanuki-priority-token".to_string())
+    );
+
+    // Cleanup
+    unsafe {
+        env::remove_var("TANUKI_MCP__GITLAB_TOKEN");
+        env::remove_var("GITLAB_TOKEN");
+    }
+}
+
+#[test]
+#[serial_test::serial]
+fn test_env_var_gitlab_token_fallback() {
+    use std::env;
+    use std::fs;
+    use tanuki_mcp::config::load_config;
+    use tempfile::tempdir;
+
+    // Create a temporary config file without a token
+    let dir = tempdir().unwrap();
+    let config_path = dir.path().join("test-config.toml");
+    let config_content = r#"
+[gitlab]
+url = "https://gitlab.com"
+
+[access_control]
+all = "read"
+"#;
+    fs::write(&config_path, config_content).unwrap();
+
+    // Ensure TANUKI_MCP__GITLAB_TOKEN is not set, only GITLAB_TOKEN
+    unsafe {
+        env::remove_var("TANUKI_MCP__GITLAB_TOKEN");
+        env::set_var("GITLAB_TOKEN", "gitlab-fallback-token");
+    }
+
+    // Load config
+    let config = load_config(Some(config_path.to_str().unwrap())).unwrap();
+
+    // GITLAB_TOKEN should be used as fallback
+    assert_eq!(
+        config.gitlab.token,
+        Some("gitlab-fallback-token".to_string())
+    );
+
+    // Cleanup
+    unsafe {
+        env::remove_var("GITLAB_TOKEN");
+    }
+}
+
+#[test]
+#[serial_test::serial]
+fn test_env_var_priority_tanuki_mcp_over_gitlab_url() {
+    use std::env;
+    use std::fs;
+    use tanuki_mcp::config::load_config;
+    use tempfile::tempdir;
+
+    // Create a temporary config file with minimal settings
+    let dir = tempdir().unwrap();
+    let config_path = dir.path().join("test-config.toml");
+    let config_content = r#"
+[gitlab]
+token = "test-token"
+
+[access_control]
+all = "read"
+"#;
+    fs::write(&config_path, config_content).unwrap();
+
+    // Set both TANUKI_MCP__GITLAB_URL and GITLAB_URL
+    unsafe {
+        env::set_var(
+            "TANUKI_MCP__GITLAB_URL",
+            "https://tanuki-priority.gitlab.com",
+        );
+        env::set_var("GITLAB_URL", "https://fallback.gitlab.com");
+    }
+
+    // Load config
+    let config = load_config(Some(config_path.to_str().unwrap())).unwrap();
+
+    // TANUKI_MCP__GITLAB_URL should take precedence
+    assert_eq!(config.gitlab.url, "https://tanuki-priority.gitlab.com");
+
+    // Cleanup
+    unsafe {
+        env::remove_var("TANUKI_MCP__GITLAB_URL");
+        env::remove_var("GITLAB_URL");
+    }
+}
+
+#[test]
+#[serial_test::serial]
+fn test_env_var_gitlab_url_fallback() {
+    use std::env;
+    use std::fs;
+    use tanuki_mcp::config::load_config;
+    use tempfile::tempdir;
+
+    // Create a temporary config file with minimal settings
+    let dir = tempdir().unwrap();
+    let config_path = dir.path().join("test-config.toml");
+    let config_content = r#"
+[gitlab]
+token = "test-token"
+
+[access_control]
+all = "read"
+"#;
+    fs::write(&config_path, config_content).unwrap();
+
+    // Ensure TANUKI_MCP__GITLAB_URL is not set, only GITLAB_URL
+    unsafe {
+        env::remove_var("TANUKI_MCP__GITLAB_URL");
+        env::set_var("GITLAB_URL", "https://fallback.gitlab.com");
+    }
+
+    // Load config
+    let config = load_config(Some(config_path.to_str().unwrap())).unwrap();
+
+    // GITLAB_URL should be used as fallback
+    assert_eq!(config.gitlab.url, "https://fallback.gitlab.com");
+
+    // Cleanup
+    unsafe {
+        env::remove_var("GITLAB_URL");
+    }
+}

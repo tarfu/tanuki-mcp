@@ -22,29 +22,51 @@ The server searches for configuration files in the following order:
 
 ## Environment Variables
 
-All configuration options can be set via environment variables with the `TANUKI_MCP_` prefix.
+All configuration options can be set via environment variables with the `TANUKI_MCP__` prefix
+(double underscore after TANUKI_MCP).
 
-Nested configuration uses double underscores (`__`) as separators:
+Nested configuration uses single underscores (`_`) as separators:
 
 ```bash
 # GitLab settings
-TANUKI_MCP_GITLAB__URL=https://gitlab.example.com
-TANUKI_MCP_GITLAB__TOKEN=glpat-xxxxxxxxxxxx
-TANUKI_MCP_GITLAB__TIMEOUT_SECS=60
+TANUKI_MCP__GITLAB_URL=https://gitlab.example.com
+TANUKI_MCP__GITLAB_TOKEN=glpat-xxxxxxxxxxxx
+TANUKI_MCP__GITLAB_TIMEOUT_SECS=60
 
 # Server settings
-TANUKI_MCP_SERVER__TRANSPORT=http
-TANUKI_MCP_SERVER__HOST=0.0.0.0
-TANUKI_MCP_SERVER__PORT=20289
+TANUKI_MCP__SERVER_TRANSPORT=http
+TANUKI_MCP__SERVER_HOST=0.0.0.0
+TANUKI_MCP__SERVER_PORT=20289
 
 # Dashboard settings
-TANUKI_MCP_DASHBOARD__ENABLED=true
-TANUKI_MCP_DASHBOARD__HOST=127.0.0.1
-TANUKI_MCP_DASHBOARD__PORT=19892
+TANUKI_MCP__DASHBOARD_ENABLED=true
+TANUKI_MCP__DASHBOARD_HOST=127.0.0.1
+TANUKI_MCP__DASHBOARD_PORT=19892
 
 # Access control base level
-TANUKI_MCP_ACCESS_CONTROL__ALL=read
+TANUKI_MCP__ACCESS_CONTROL_ALL=read
 ```
+
+### GitLab Environment Variable Fallbacks
+
+For compatibility with existing GitLab tooling, the server also checks standard
+GitLab environment variables as fallbacks when `TANUKI_MCP__*` variables are not set.
+
+**Token precedence (highest to lowest):**
+1. `TANUKI_MCP__GITLAB_TOKEN`
+2. `GITLAB_TOKEN`
+3. `GITLAB_PRIVATE_TOKEN`
+4. `GITLAB_ACCESS_TOKEN`
+5. Config file `gitlab.token`
+
+**URL precedence (highest to lowest):**
+1. `TANUKI_MCP__GITLAB_URL`
+2. `GITLAB_URL`
+3. Config file `gitlab.url`
+
+> **Note:** If you have `GITLAB_TOKEN` set globally for GitLab CLI tools, it will
+> be used automatically as a fallback. Set `TANUKI_MCP__GITLAB_TOKEN` if you need a
+> different token specifically for this server (it will take precedence).
 
 ## Command-Line Arguments
 
@@ -94,7 +116,7 @@ port = 20289
 url = "https://gitlab.com"
 
 # Personal Access Token (required)
-# Recommended: Set via TANUKI_MCP_GITLAB__TOKEN environment variable
+# Recommended: Set via TANUKI_MCP__GITLAB_TOKEN environment variable
 token = "glpat-xxxxxxxxxxxxxxxxxxxx"
 
 # Request timeout in seconds
@@ -105,6 +127,12 @@ max_retries = 3
 
 # Verify SSL certificates
 verify_ssl = true
+
+# Custom User-Agent header (optional, default: "tanuki-mcp/<version>")
+# user_agent = "my-custom-agent/1.0"
+
+# API version (default: "v4", rarely needs to be changed)
+# api_version = "v4"
 
 # =============================================================================
 # Dashboard Configuration
@@ -122,10 +150,25 @@ host = "127.0.0.1"
 port = 19892
 
 # =============================================================================
+# Logging Configuration
+# =============================================================================
+[logging]
+# Log level: trace, debug, info, warn, error
+level = "info"
+
+# Output format: pretty (human-readable) or json (structured)
+format = "pretty"
+
+# =============================================================================
 # Access Control
 # =============================================================================
+#
+# > **Note:** The default access level is `full` if not specified. We recommend
+# > explicitly setting `all = "read"` and enabling specific categories for
+# > production use.
+
 [access_control]
-# Base access level: "none", "read", or "full"
+# Base access level: "none", "deny", "read", or "full"
 all = "read"
 
 # Global deny patterns (regex)
@@ -198,8 +241,8 @@ Configure in Claude Code's MCP settings:
     "tanuki-mcp": {
       "command": "tanuki-mcp",
       "env": {
-        "TANUKI_MCP_GITLAB__URL": "https://gitlab.com",
-        "TANUKI_MCP_GITLAB__TOKEN": "glpat-xxx"
+        "TANUKI_MCP__GITLAB_URL": "https://gitlab.com",
+        "TANUKI_MCP__GITLAB_TOKEN": "glpat-xxx"
       }
     }
   }
