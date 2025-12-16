@@ -279,6 +279,8 @@ tasks:
       # Bump version in all Cargo.toml files
       - echo "Bumping version to {{.RELEASE_VERSION}}..."
       - cargo set-version {{.RELEASE_VERSION}}
+      # Update Cargo.lock to reflect new version
+      - cargo generate-lockfile
       # Commit the version bump
       - git add Cargo.toml tanuki-mcp-macros/Cargo.toml e2e/Cargo.toml Cargo.lock
       - 'git commit -m "chore: release v{{.RELEASE_VERSION}}"'
