@@ -269,8 +269,9 @@ TANUKI_MCP__DASHBOARD_ENABLED=true
 ### Dependencies
 
 ```bash
-# Task runner (https://taskfile.dev)
-brew install go-task
+# Task runner - choose one (both Justfile and Taskfile.yml are available)
+brew install just       # https://just.systems
+brew install go-task    # https://taskfile.dev
 
 # For release management (cargo set-version --bump)
 cargo install cargo-edit
@@ -279,23 +280,35 @@ cargo install cargo-edit
 ### Available Tasks
 
 ```bash
-task --list        # List all tasks
-task check         # Run all checks (fmt, clippy, test, doc)
-task release       # Create a release (tag + version bump)
-task e2e           # Run E2E tests
+# Using just (Justfile)
+just --list        # List all tasks
+just check         # Run all checks (fmt, clippy, test, doc)
+just release patch # Create a release (tag + version bump)
+just e2e           # Run E2E tests
+
+# Using task (Taskfile.yml)
+task --list               # List all tasks
+task check                # Run all checks (fmt, clippy, test, doc)
+task release VERSION=patch   # Create a release (tag + version bump)
+task e2e                  # Run E2E tests
 ```
 
 ### Creating a Release
 
 ```bash
-# Tag current version, bump minor (runs check + e2e)
-task release
+# Using just
+just release patch          # Bump patch version (0.1.1 -> 0.1.2)
+just release minor          # Bump minor version (0.1.1 -> 0.2.0)
+just release major          # Bump major version (0.1.1 -> 1.0.0)
+just release 1.0.0          # Set explicit version
+just release-push           # Push main + version tag
 
-# Skip E2E tests
-task release SKIP_E2E=true
-
-# Custom version
-task release VERSION=1.0.0 NEXT_VERSION=2.0.0
+# Using task
+task release VERSION=patch  # Bump patch version
+task release VERSION=minor  # Bump minor version
+task release VERSION=1.0.0  # Set explicit version
+task release VERSION=patch SKIP_E2E=true  # Skip E2E tests
+task release-push           # Push main + version tag
 ```
 
 ## License

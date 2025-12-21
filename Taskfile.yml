@@ -335,3 +335,13 @@ tasks:
         echo "To complete the release, push the tag and commit:"
         echo "  git push origin main"
         echo "  git push origin v$RELEASE_VERSION"
+
+  release-push:
+    desc: "Push the release (main branch + latest version tag)"
+    cmds:
+      - |
+        RELEASE_VERSION=$(cargo pkgid | cut -d "@" -f2)
+        echo "Pushing release v$RELEASE_VERSION..."
+        git push origin main
+        git push origin "v$RELEASE_VERSION"
+        echo "Release v$RELEASE_VERSION pushed successfully"

@@ -253,3 +253,14 @@ release-skip-e2e version:
     #!/usr/bin/env bash
     set -euo pipefail
     just release {{version}}
+
+# Push the release (main branch + latest version tag)
+release-push:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    RELEASE_VERSION=$(cargo pkgid | cut -d "@" -f2)
+    echo "Pushing release v$RELEASE_VERSION..."
+    git push origin main
+    git push origin "v$RELEASE_VERSION"
+    echo "Release v$RELEASE_VERSION pushed successfully"
