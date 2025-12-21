@@ -272,7 +272,7 @@ TANUKI_MCP__DASHBOARD_ENABLED=true
 # Task runner (https://taskfile.dev)
 brew install go-task
 
-# For release management (cargo set-version)
+# For release management (cargo set-version --bump)
 cargo install cargo-edit
 ```
 

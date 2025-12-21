@@ -222,27 +222,17 @@ release version:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    CURRENT_VERSION=$(cargo pkgid | cut -d "@" -f2)
-    MAJOR=$(echo "$CURRENT_VERSION" | cut -d. -f1)
-    MINOR=$(echo "$CURRENT_VERSION" | cut -d. -f2)
-    PATCH=$(echo "$CURRENT_VERSION" | cut -d. -f3)
-
-    case "{{version}}" in
-      patch) RELEASE_VERSION="$MAJOR.$MINOR.$((PATCH+1))" ;;
-      minor) RELEASE_VERSION="$MAJOR.$((MINOR+1)).0" ;;
-      major) RELEASE_VERSION="$((MAJOR+1)).0.0" ;;
-      *) RELEASE_VERSION="{{version}}" ;;
-    esac
-
-    echo "=== Release v$RELEASE_VERSION ==="
-    echo "Current version: $CURRENT_VERSION"
-    echo ""
-
     git diff --quiet || (echo "ERROR: Working directory not clean" && exit 1)
 
-    echo "Bumping version to $RELEASE_VERSION..."
-    cargo set-version "$RELEASE_VERSION"
+    echo "Bumping version..."
+    case "{{version}}" in
+      patch|minor|major) cargo set-version --workspace --bump "{{version}}" ;;
+      *) cargo set-version --workspace "{{version}}" ;;
+    esac
     cargo generate-lockfile
+
+    RELEASE_VERSION=$(cargo pkgid | cut -d "@" -f2)
+    echo "=== Release v$RELEASE_VERSION ==="
 
     git add Cargo.toml tanuki-mcp-macros/Cargo.toml e2e/Cargo.toml Cargo.lock
     git commit -m "chore: release v$RELEASE_VERSION"
