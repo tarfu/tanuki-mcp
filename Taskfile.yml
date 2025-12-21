@@ -233,6 +233,49 @@ tasks:
           echo "GitLab is not ready yet"
         fi
 
+  # Development Environment
+  dev:
+    desc: Start full development environment (GitLab + MCP + Inspector)
+    cmds:
+      - task: e2e:gitlab:up
+      - task: e2e:wait
+      - task: e2e:runner:setup
+      - task: dev:mcp:up
+      - |
+        echo ""
+        echo "=== Development Environment Ready ==="
+        echo "GitLab:        http://localhost:8080 (root/testpassword123!)"
+        echo "MCP Server:    http://localhost:20399/mcp"
+        echo "Dashboard:     http://localhost:20400"
+        echo "MCP Inspector: http://localhost:6274"
+        echo ""
+        echo "To connect Inspector to MCP server:"
+        echo "  Transport: Streamable HTTP"
+        echo "  URL: http://tanuki-mcp:20289/mcp"
+        echo ""
+        echo "Stop with: task dev:down"
+
+  dev:mcp:up:
+    desc: Start MCP server and Inspector
+    internal: true
+    cmds:
+      - |
+        TOKEN=$(./e2e/scripts/create-pat.sh)
+        export GITLAB_TOKEN="$TOKEN"
+        docker compose -f e2e/docker-compose.yml --profile mcp --profile inspector up -d --build
+
+        echo "Waiting for MCP server..."
+        for i in $(seq 1 30); do
+          curl -sf http://localhost:20399/health >/dev/null 2>&1 && break
+          sleep 1
+        done
+        curl -sf http://localhost:20399/health >/dev/null 2>&1 || echo "WARNING: MCP server not responding"
+
+  dev:down:
+    desc: Stop development environment
+    cmds:
+      - docker compose -f e2e/docker-compose.yml --profile infra --profile mcp --profile inspector down -v
+
   # Release Management
   # Requires: go-task (brew install go-task), cargo-edit (cargo install cargo-edit)
   #

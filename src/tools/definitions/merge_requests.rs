@@ -117,7 +117,8 @@ pub struct GetMergeRequest {
     /// Merge request IID
     pub merge_request_iid: u64,
 
-    /// Include commits in response
+    /// Include commits in response (default: false).
+    /// WARNING: This can return very large amounts of data for MRs with many commits.
     #[serde(default)]
     pub include_commits: Option<bool>,
 

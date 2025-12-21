@@ -2,6 +2,7 @@
 //!
 //! Runs the MCP server over HTTP using the Streamable HTTP transport.
 
+use crate::config::CorsMode;
 use crate::server::GitLabMcpHandler;
 use crate::util::bind_port_strict;
 use axum::{Json, Router, routing::get};
@@ -10,6 +11,7 @@ use rmcp::transport::streamable_http_server::{
 };
 use std::net::SocketAddr;
 use tokio_util::sync::CancellationToken;
+use tower_http::cors::CorsLayer;
 use tracing::{Instrument, info, info_span};
 
 /// Default port for HTTP transport
@@ -22,6 +24,8 @@ pub struct HttpConfig {
     pub bind: SocketAddr,
     /// Path for MCP endpoint (default: "/mcp")
     pub mcp_path: String,
+    /// CORS mode (default: Permissive)
+    pub cors: CorsMode,
 }
 
 impl Default for HttpConfig {
@@ -29,6 +33,7 @@ impl Default for HttpConfig {
         Self {
             bind: SocketAddr::from(([127, 0, 0, 1], DEFAULT_HTTP_PORT)),
             mcp_path: "/mcp".to_string(),
+            cors: CorsMode::default(),
         }
     }
 }
@@ -100,6 +105,12 @@ where
     let router = Router::new()
         .nest_service(&config.mcp_path, service)
         .route("/health", get(health_handler));
+
+    // Apply CORS layer based on config
+    let router = match config.cors {
+        CorsMode::Permissive => router.layer(CorsLayer::permissive()),
+        CorsMode::Disabled => router,
+    };
 
     // Bind and serve the router
     let listener = tokio::net::TcpListener::bind(bind_addr).await?;

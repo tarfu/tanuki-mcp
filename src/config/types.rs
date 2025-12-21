@@ -125,6 +125,9 @@ pub struct ServerConfig {
 
     /// Server version for MCP
     pub version: String,
+
+    /// CORS mode for HTTP transport
+    pub cors: CorsMode,
 }
 
 impl Default for ServerConfig {
@@ -135,6 +138,7 @@ impl Default for ServerConfig {
             port: 20289,
             name: "tanuki-mcp".into(),
             version: env!("CARGO_PKG_VERSION").into(),
+            cors: CorsMode::default(),
         }
     }
 }
@@ -148,6 +152,17 @@ pub enum TransportMode {
     Stdio,
     /// HTTP with Server-Sent Events
     Http,
+}
+
+/// CORS configuration mode for HTTP transport
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CorsMode {
+    /// Allow all origins, methods, and headers (default)
+    #[default]
+    Permissive,
+    /// Disable CORS headers entirely
+    Disabled,
 }
 
 /// Access control configuration

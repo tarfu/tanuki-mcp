@@ -252,7 +252,8 @@ async fn main() -> anyhow::Result<()> {
             run_stdio(handler).await?;
         }
         TransportMode::Http => {
-            let http_config = HttpConfig::from_host_port(&args.http_host, args.http_port)?;
+            let mut http_config = HttpConfig::from_host_port(&args.http_host, args.http_port)?;
+            http_config.cors = config.server.cors;
 
             // Clone the shared resources for the factory closure
             let config = Arc::new(config);

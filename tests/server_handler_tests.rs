@@ -4,8 +4,8 @@ use rmcp::handler::server::ServerHandler;
 use tanuki_mcp::access_control::AccessResolver;
 use tanuki_mcp::auth::PatProvider;
 use tanuki_mcp::config::{
-    AccessControlConfig, AccessLevel, AppConfig, DashboardConfigToml, GitLabConfig, LoggingConfig,
-    ServerConfig, TransportMode,
+    AccessControlConfig, AccessLevel, AppConfig, CorsMode, DashboardConfigToml, GitLabConfig,
+    LoggingConfig, ServerConfig, TransportMode,
 };
 use tanuki_mcp::gitlab::GitLabClient;
 use tanuki_mcp::server::GitLabMcpHandler;
@@ -25,6 +25,7 @@ fn create_test_config(gitlab_url: &str) -> AppConfig {
             transport: TransportMode::Stdio,
             host: "127.0.0.1".to_string(),
             port: 3000,
+            cors: CorsMode::default(),
         },
         gitlab: GitLabConfig {
             url: gitlab_url.to_string(),

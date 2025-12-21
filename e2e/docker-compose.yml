@@ -110,6 +110,23 @@ services:
       retries: 10
       start_period: 10s
 
+  mcp-inspector:
+    profiles: ["inspector"]
+    image: ghcr.io/modelcontextprotocol/inspector:latest
+    container_name: tanuki-mcp-inspector
+    hostname: mcp-inspector
+    restart: unless-stopped
+    environment:
+      # Bind to all interfaces for Docker networking
+      - HOST=0.0.0.0
+      # Disable auth for local development
+      - DANGEROUSLY_OMIT_AUTH=true
+      # Allow connections from any origin (local dev)
+      - ALLOWED_ORIGINS=*
+    ports:
+      - "6274:6274"   # Web UI
+      - "6277:6277"   # Proxy server
+
 volumes:
   gitlab-config:
   gitlab-logs:

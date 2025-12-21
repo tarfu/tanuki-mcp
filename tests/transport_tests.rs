@@ -3,6 +3,7 @@
 //! Tests for HTTP configuration and basic functionality.
 
 use std::net::SocketAddr;
+use tanuki_mcp::config::CorsMode;
 use tanuki_mcp::transport::HttpConfig;
 
 #[test]
@@ -85,4 +86,28 @@ async fn test_http_server_config_creation() {
         // Should be able to create configs without panic
         assert!(!config.mcp_path.is_empty());
     }
+}
+
+// ============================================================================
+// CORS Configuration Tests
+// ============================================================================
+
+#[test]
+fn test_cors_mode_default_is_permissive() {
+    assert_eq!(CorsMode::default(), CorsMode::Permissive);
+}
+
+#[test]
+fn test_http_config_default_cors_is_permissive() {
+    let config = HttpConfig::default();
+    assert_eq!(config.cors, CorsMode::Permissive);
+}
+
+#[test]
+fn test_cors_mode_deserialization() {
+    let permissive: CorsMode = serde_json::from_str(r#""permissive""#).unwrap();
+    assert_eq!(permissive, CorsMode::Permissive);
+
+    let disabled: CorsMode = serde_json::from_str(r#""disabled""#).unwrap();
+    assert_eq!(disabled, CorsMode::Disabled);
 }
