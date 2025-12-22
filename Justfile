@@ -225,9 +225,9 @@ release version:
     git diff --quiet || (echo "ERROR: Working directory not clean" && exit 1)
 
     echo "Bumping version..."
-    case "{{version}}" in
-      patch|minor|major) cargo set-version --workspace --bump "{{version}}" ;;
-      *) cargo set-version --workspace "{{version}}" ;;
+    case "{{ version }}" in
+      patch|minor|major) cargo set-version --workspace --bump "{{ version }}" ;;
+      *) cargo set-version --workspace "{{ version }}" ;;
     esac
     cargo generate-lockfile
 
@@ -252,7 +252,7 @@ release version:
 release-skip-e2e version:
     #!/usr/bin/env bash
     set -euo pipefail
-    just release {{version}}
+    just release {{ version }}
 
 # Push the release (main branch + latest version tag)
 release-push:

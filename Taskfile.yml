@@ -9,7 +9,7 @@ tasks:
   check:
     desc: Run all checks (same as CI)
     cmds:
-      - task: fmt:check
+      - task: fmt
       - task: clippy
       - task: test
       - task: doc
