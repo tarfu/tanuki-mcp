@@ -3,7 +3,7 @@ default:
     @just --list
 
 # Run all checks (same as CI)
-check: fmt-check clippy test doc
+check: fmt clippy test doc
 
 # Format code with rustfmt
 fmt:
