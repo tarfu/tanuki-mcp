@@ -4020,3 +4020,200 @@ mod edge_cases {
         );
     }
 }
+
+// =============================================================================
+// 9. Tool Visibility Tests (is_tool_visible)
+// =============================================================================
+
+mod tool_visibility {
+    use super::*;
+
+    #[test]
+    fn test_full_access_all_tools_visible() {
+        let config = config_with_level(AccessLevel::Full);
+        let resolver = AccessResolver::new(&config).unwrap();
+
+        assert!(resolver.is_tool_visible("list_issues", ToolCategory::Issues, OperationType::Read));
+        assert!(resolver.is_tool_visible(
+            "create_issue",
+            ToolCategory::Issues,
+            OperationType::Write
+        ));
+        assert!(resolver.is_tool_visible(
+            "delete_issue",
+            ToolCategory::Issues,
+            OperationType::Delete
+        ));
+    }
+
+    #[test]
+    fn test_read_level_hides_write_ops() {
+        let config = config_with_level(AccessLevel::Read);
+        let resolver = AccessResolver::new(&config).unwrap();
+
+        assert!(resolver.is_tool_visible("list_issues", ToolCategory::Issues, OperationType::Read));
+        assert!(!resolver.is_tool_visible(
+            "create_issue",
+            ToolCategory::Issues,
+            OperationType::Write
+        ));
+        assert!(!resolver.is_tool_visible(
+            "delete_issue",
+            ToolCategory::Issues,
+            OperationType::Delete
+        ));
+        assert!(!resolver.is_tool_visible(
+            "merge_merge_request",
+            ToolCategory::MergeRequests,
+            OperationType::Execute
+        ));
+    }
+
+    #[test]
+    fn test_none_level_hides_all() {
+        let config = config_with_level(AccessLevel::None);
+        let resolver = AccessResolver::new(&config).unwrap();
+
+        assert!(!resolver.is_tool_visible(
+            "list_issues",
+            ToolCategory::Issues,
+            OperationType::Read
+        ));
+        assert!(!resolver.is_tool_visible(
+            "create_issue",
+            ToolCategory::Issues,
+            OperationType::Write
+        ));
+    }
+
+    #[test]
+    fn test_deny_level_hides_all() {
+        let config = config_with_level(AccessLevel::Deny);
+        let resolver = AccessResolver::new(&config).unwrap();
+
+        assert!(!resolver.is_tool_visible(
+            "list_issues",
+            ToolCategory::Issues,
+            OperationType::Read
+        ));
+        assert!(!resolver.is_tool_visible(
+            "create_issue",
+            ToolCategory::Issues,
+            OperationType::Write
+        ));
+    }
+
+    #[test]
+    fn test_action_deny_hides_tool() {
+        let mut config = config_with_level(AccessLevel::Full);
+        config
+            .actions
+            .insert("merge_merge_request".to_string(), ActionPermission::Deny);
+        let resolver = AccessResolver::new(&config).unwrap();
+
+        assert!(!resolver.is_tool_visible(
+            "merge_merge_request",
+            ToolCategory::MergeRequests,
+            OperationType::Execute
+        ));
+        assert!(resolver.is_tool_visible(
+            "create_merge_request",
+            ToolCategory::MergeRequests,
+            OperationType::Write
+        ));
+    }
+
+    #[test]
+    fn test_deny_pattern_hides_matching_tools() {
+        let mut config = config_with_level(AccessLevel::Full);
+        config.deny = vec!["^delete_".to_string()];
+        let resolver = AccessResolver::new(&config).unwrap();
+
+        assert!(!resolver.is_tool_visible(
+            "delete_issue",
+            ToolCategory::Issues,
+            OperationType::Delete
+        ));
+        assert!(resolver.is_tool_visible(
+            "create_issue",
+            ToolCategory::Issues,
+            OperationType::Write
+        ));
+    }
+
+    #[test]
+    fn test_globally_denied_but_project_allowed_still_visible() {
+        let mut config = config_with_level(AccessLevel::None);
+        let mut proj_config = ProjectAccessConfig::default();
+        proj_config.all = Some(AccessLevel::Full);
+        config
+            .projects
+            .insert("special/repo".to_string(), proj_config);
+        let resolver = AccessResolver::new(&config).unwrap();
+
+        // Globally denied but a project grants access — the tool must remain
+        // in the listing so a client can invoke it with the project argument.
+        // Per-project enforcement happens at call time in execute().
+        assert!(resolver.is_tool_visible(
+            "create_issue",
+            ToolCategory::Issues,
+            OperationType::Write
+        ));
+    }
+
+    #[test]
+    fn test_category_read_hides_write_in_category() {
+        let mut config = config_with_level(AccessLevel::Full);
+        config.categories.insert(
+            "pipelines".to_string(),
+            CategoryAccessConfig {
+                level: AccessLevel::Read,
+                deny: vec![],
+                allow: vec![],
+            },
+        );
+        let resolver = AccessResolver::new(&config).unwrap();
+
+        assert!(resolver.is_tool_visible(
+            "list_pipelines",
+            ToolCategory::Pipelines,
+            OperationType::Read
+        ));
+        assert!(!resolver.is_tool_visible(
+            "create_pipeline",
+            ToolCategory::Pipelines,
+            OperationType::Write
+        ));
+        // Other categories still full
+        assert!(resolver.is_tool_visible(
+            "create_issue",
+            ToolCategory::Issues,
+            OperationType::Write
+        ));
+    }
+
+    #[test]
+    fn test_category_allow_overrides_level() {
+        let mut config = config_with_level(AccessLevel::Read);
+        config.categories.insert(
+            "pipelines".to_string(),
+            CategoryAccessConfig {
+                level: AccessLevel::Read,
+                deny: vec![],
+                allow: vec!["create_pipeline".to_string()],
+            },
+        );
+        let resolver = AccessResolver::new(&config).unwrap();
+
+        assert!(resolver.is_tool_visible(
+            "create_pipeline",
+            ToolCategory::Pipelines,
+            OperationType::Write
+        ));
+        assert!(!resolver.is_tool_visible(
+            "retry_pipeline",
+            ToolCategory::Pipelines,
+            OperationType::Execute
+        ));
+    }
+}

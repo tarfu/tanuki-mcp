@@ -2,7 +2,9 @@
 //!
 //! Manages the collection of available tools and their metadata.
 
-use crate::access_control::{AccessControlled, AccessDecision, OperationType, ToolCategory};
+use crate::access_control::{
+    AccessControlled, AccessDecision, AccessResolver, OperationType, ToolCategory,
+};
 use crate::error::{AccessDeniedError, ToolError};
 use crate::tools::executor::ToolInfo;
 use crate::tools::executor::{ToolContext, ToolExecutor, ToolOutput};
@@ -12,6 +14,7 @@ use schemars::Schema;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Instant;
 use tracing::{debug, instrument, warn};
 
@@ -101,6 +104,8 @@ where
 pub struct ToolRegistry {
     tools: HashMap<String, RegisteredTool>,
     by_category: HashMap<ToolCategory, Vec<String>>,
+    /// Optional access filter applied during registration
+    access_filter: Option<Arc<AccessResolver>>,
 }
 
 impl ToolRegistry {
@@ -109,10 +114,20 @@ impl ToolRegistry {
         Self {
             tools: HashMap::new(),
             by_category: HashMap::new(),
+            access_filter: None,
         }
     }
 
-    /// Register a tool
+    /// Create a registry that filters tools by access control during registration
+    pub fn new_filtered(access: Arc<AccessResolver>) -> Self {
+        Self {
+            tools: HashMap::new(),
+            by_category: HashMap::new(),
+            access_filter: Some(access),
+        }
+    }
+
+    /// Register a tool, skipping it if denied by access control
     pub fn register<T>(&mut self)
     where
         T: ToolExecutor
@@ -125,9 +140,18 @@ impl ToolRegistry {
             + 'static,
     {
         let name = <T as ToolInfo>::name();
-        let description = <T as ToolInfo>::description();
         let category = <T as ToolInfo>::category();
         let operation = <T as ToolInfo>::operation_type();
+
+        // Skip tools denied by access control
+        if let Some(ref access) = self.access_filter
+            && !access.is_tool_visible(name, category, operation)
+        {
+            debug!(name = name, category = %category, "Skipped tool (access denied)");
+            return;
+        }
+
+        let description = <T as ToolInfo>::description();
 
         // Generate JSON Schema
         let input_schema = schemars::schema_for!(T);

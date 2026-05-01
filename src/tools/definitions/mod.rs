@@ -25,8 +25,10 @@ pub mod wiki;
 
 use crate::tools::ToolRegistry;
 
-/// Register all tools with the registry
+/// Register all tools with the registry.
+///
+/// If the registry was constructed with [`ToolRegistry::new_filtered`], tools
+/// denied by access control are skipped during registration.
 pub fn register_all_tools(registry: &mut ToolRegistry) {
-    // Auto-register all tools using #[gitlab_tool] macro
     registry.register_all_auto();
 }

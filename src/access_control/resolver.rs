@@ -360,6 +360,22 @@ impl AccessResolver {
         true
     }
 
+    /// Check if a tool should appear in the MCP tool list.
+    ///
+    /// Returns `true` when the tool is callable in *some* context:
+    /// either the global (project-less) decision is `Allowed`, or at least
+    /// one project explicitly grants access. Project-only access is then
+    /// gated at call time by `execute()` once a `project` argument is
+    /// supplied. A tool is hidden only when it is denied everywhere.
+    pub fn is_tool_visible(
+        &self,
+        tool_name: &str,
+        category: ToolCategory,
+        operation: OperationType,
+    ) -> bool {
+        !self.is_globally_denied(tool_name, category, operation)
+    }
+
     /// Check if a tool has project-specific restrictions.
     ///
     /// Returns `true` if the tool might be available for some projects but not others.
