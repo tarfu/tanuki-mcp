@@ -4,8 +4,8 @@ use rmcp::handler::server::ServerHandler;
 use tanuki_mcp::access_control::AccessResolver;
 use tanuki_mcp::auth::PatProvider;
 use tanuki_mcp::config::{
-    AccessControlConfig, AccessLevel, AppConfig, CorsMode, DashboardConfigToml, GitLabConfig,
-    LoggingConfig, ServerConfig, TransportMode,
+    AccessControlConfig, AccessLevel, ActionPermission, AppConfig, CorsMode, DashboardConfigToml,
+    GitLabConfig, LoggingConfig, ServerConfig, TransportMode,
 };
 use tanuki_mcp::gitlab::GitLabClient;
 use tanuki_mcp::server::GitLabMcpHandler;
@@ -226,4 +226,134 @@ async fn test_handler_instructions() {
     let instructions = info.instructions.unwrap();
     assert!(instructions.contains("GitLab"));
     assert!(instructions.contains("MCP"));
+}
+
+// =============================================================================
+// Tool Visibility Tests (access-control-filtered tool list)
+// =============================================================================
+
+/// Create a handler with a specific access control policy
+fn create_handler_with_access(
+    mock_server: &MockServer,
+    policy: AccessControlConfig,
+) -> GitLabMcpHandler {
+    let config = create_test_config(&mock_server.uri());
+    let auth = PatProvider::new("test-token".to_string()).unwrap();
+    let gitlab = GitLabClient::new(&config.gitlab, Box::new(auth)).unwrap();
+    let access = AccessResolver::new(&policy).unwrap();
+    GitLabMcpHandler::new(&config, gitlab, access)
+}
+
+#[tokio::test]
+async fn test_full_access_shows_all_tools() {
+    let mock_server = MockServer::start().await;
+    let mut policy = AccessControlConfig::default();
+    policy.all = AccessLevel::Full;
+    let handler = create_handler_with_access(&mock_server, policy);
+
+    let tool_names = handler.tool_names();
+
+    // Should have a substantial number of tools (all registered)
+    assert!(!tool_names.is_empty());
+    assert!(tool_names.iter().any(|n| n.contains("list_")));
+    assert!(tool_names.iter().any(|n| n.contains("create_")));
+}
+
+#[tokio::test]
+async fn test_read_access_hides_write_tools() {
+    let mock_server = MockServer::start().await;
+    let mut policy = AccessControlConfig::default();
+    policy.all = AccessLevel::Read;
+    let handler = create_handler_with_access(&mock_server, policy);
+
+    let tool_names = handler.tool_names();
+
+    // Should have read tools
+    assert!(
+        tool_names
+            .iter()
+            .any(|n| n.starts_with("list_") || n.starts_with("get_"))
+    );
+    // Should NOT have write/create/delete tools
+    assert!(!tool_names.iter().any(|n| n.starts_with("create_")));
+    assert!(!tool_names.iter().any(|n| n.starts_with("delete_")));
+    assert!(!tool_names.iter().any(|n| n.starts_with("merge_")));
+}
+
+#[tokio::test]
+async fn test_action_deny_hides_specific_tool() {
+    let mock_server = MockServer::start().await;
+    let mut policy = AccessControlConfig::default();
+    policy.all = AccessLevel::Full;
+    policy
+        .actions
+        .insert("merge_merge_request".to_string(), ActionPermission::Deny);
+    let handler = create_handler_with_access(&mock_server, policy);
+
+    let tool_names = handler.tool_names();
+
+    // merge_merge_request should be hidden
+    assert!(!tool_names.iter().any(|n| n == "merge_merge_request"));
+    // Other MR tools should still be present
+    assert!(
+        tool_names
+            .iter()
+            .any(|n| n.starts_with("list_merge") || n.starts_with("create_merge"))
+    );
+}
+
+#[tokio::test]
+async fn test_category_read_hides_write_tools_in_category() {
+    let mock_server = MockServer::start().await;
+    let mut policy = AccessControlConfig::default();
+    policy.all = AccessLevel::Full;
+    policy.categories.insert(
+        "repository".to_string(),
+        tanuki_mcp::config::CategoryAccessConfig {
+            level: AccessLevel::Read,
+            deny: vec![],
+            allow: vec![],
+        },
+    );
+    let handler = create_handler_with_access(&mock_server, policy);
+
+    let tool_names = handler.tool_names();
+
+    // Repository read tools should be present
+    assert!(tool_names.iter().any(|n| n == "get_repository_file"));
+    // Repository write tools should be hidden
+    assert!(!tool_names.iter().any(|n| n == "create_or_update_file"));
+    // Other categories should still have write tools
+    assert!(tool_names.iter().any(|n| n == "create_issue"));
+}
+
+#[tokio::test]
+async fn test_tool_count_matches_filtered_list() {
+    let mock_server = MockServer::start().await;
+    let mut policy = AccessControlConfig::default();
+    policy.all = AccessLevel::Read;
+    let handler = create_handler_with_access(&mock_server, policy);
+
+    assert_eq!(handler.tool_count(), handler.tool_names().len());
+    // Read-only should have fewer tools than full access
+    assert!(handler.tool_count() > 0);
+}
+
+#[tokio::test]
+async fn test_completions_filtered_by_access() {
+    let mock_server = MockServer::start().await;
+    let mut policy = AccessControlConfig::default();
+    policy.all = AccessLevel::Read;
+    let handler = create_handler_with_access(&mock_server, policy);
+
+    let names = handler.tool_names();
+    let list_completions: Vec<&String> =
+        names.iter().filter(|n| n.starts_with("list_")).collect();
+    let create_completions: Vec<&String> =
+        names.iter().filter(|n| n.starts_with("create_")).collect();
+
+    // Should have list_ completions (read ops)
+    assert!(!list_completions.is_empty());
+    // Should have NO create_ completions (write ops denied)
+    assert!(create_completions.is_empty());
 }

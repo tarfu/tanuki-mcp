@@ -45,9 +45,9 @@ pub struct GitLabMcpHandler {
 }
 
 impl GitLabMcpHandler {
-    /// Create a new tool registry with all tools registered
-    fn create_registry() -> Arc<ToolRegistry> {
-        let mut registry = ToolRegistry::new();
+    /// Create a filtered tool registry — only allowed tools are registered
+    fn create_registry(access: &Arc<AccessResolver>) -> Arc<ToolRegistry> {
+        let mut registry = ToolRegistry::new_filtered(access.clone());
         definitions::register_all_tools(&mut registry);
         Arc::new(registry)
     }
@@ -67,7 +67,7 @@ impl GitLabMcpHandler {
         gitlab: Arc<GitLabClient>,
         access: Arc<AccessResolver>,
     ) -> Self {
-        let registry = Self::create_registry();
+        let registry = Self::create_registry(&access);
         info!(tools = registry.len(), "Initialized GitLab MCP handler");
 
         Self {
@@ -88,7 +88,7 @@ impl GitLabMcpHandler {
         access: Arc<AccessResolver>,
         metrics: Arc<DashboardMetrics>,
     ) -> Self {
-        let registry = Self::create_registry();
+        let registry = Self::create_registry(&access);
         info!(
             tools = registry.len(),
             "Initialized GitLab MCP handler with metrics"
@@ -105,9 +105,16 @@ impl GitLabMcpHandler {
         }
     }
 
-    /// Get the number of registered tools
+    /// Get the number of visible (access-control-filtered) tools
     pub fn tool_count(&self) -> usize {
         self.registry.len()
+    }
+
+    /// Get the names of visible (access-control-filtered) tools.
+    ///
+    /// Intended for diagnostics and tests. Order is unspecified.
+    pub fn tool_names(&self) -> Vec<String> {
+        self.registry.tool_names().map(str::to_string).collect()
     }
 
     /// Create tool context for a request
@@ -149,23 +156,19 @@ impl GitLabMcpHandler {
         }
     }
 
-    /// Convert registry tools to MCP tool definitions
+    /// Convert registry tools to MCP tool definitions.
     ///
-    /// Tools that are globally denied (denied everywhere, no project grants access)
-    /// will have their description prefixed with "UNAVAILABLE: ".
-    ///
-    /// The tool list is cached after first generation for performance.
+    /// The registry already contains only access-allowed tools.
+    /// The tool list is cached after first generation.
     fn get_mcp_tools(&self) -> Vec<Tool> {
         self.cached_tools
             .get_or_init(|| {
                 self.registry
                     .tools()
                     .map(|tool| {
-                        // Convert schemars schema to MCP format (JsonObject = Map<String, Value>)
                         let schema_value = serde_json::to_value(&tool.input_schema)
                             .unwrap_or_else(|_| serde_json::json!({}));
 
-                        // Build the input schema as a JsonObject
                         let mut input_schema: Map<String, Value> = Map::new();
                         input_schema
                             .insert("type".to_string(), Value::String("object".to_string()));
@@ -177,23 +180,9 @@ impl GitLabMcpHandler {
                             input_schema.insert("required".to_string(), required.clone());
                         }
 
-                        // Check if this tool is globally denied (denied everywhere)
-                        let is_globally_denied = self.access.is_globally_denied(
-                            tool.name,
-                            tool.category,
-                            tool.operation,
-                        );
-
-                        // Build description - prefix with UNAVAILABLE if globally denied
-                        let description = if is_globally_denied {
-                            format!("UNAVAILABLE: {}", tool.description)
-                        } else {
-                            tool.description.to_string()
-                        };
-
                         Tool {
                             name: Cow::Owned(tool.name.to_string()),
-                            description: Some(Cow::Owned(description)),
+                            description: Some(Cow::Owned(tool.description.to_string())),
                             input_schema: Arc::new(input_schema),
                             annotations: None,
                             icons: None,
